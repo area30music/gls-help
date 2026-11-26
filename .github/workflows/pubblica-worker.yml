@@ -18,7 +18,7 @@ jobs:
   pubblica:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Numero di versione
         run: sed -i "s/__VERSIONE__/$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}/g" worker/src/index.js
