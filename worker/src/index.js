@@ -161,12 +161,19 @@ export default {
         const d = await r.json();
         const modelli = (d.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent')).map((m) => m.name.replace('models/', ''));
         const prova = {};
-        for (const m of [env.GEMINI_MODELLO, ...modelli.filter((x) => /flash/.test(x) && !/image|tts|audio|live|embedding/.test(x)).slice(0, 6)].filter(Boolean)) {
-          const t = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY || '' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: 'Rispondi solo: ok' }] }], tools: [{ google_search: {} }] })
-          });
-          prova[m] = t.status === 200 ? 'ok' : `${t.status} ${(((await t.json().catch(() => ({}))).error || {}).message || '').split('\n')[0].slice(0, 160)}`;
+        const daProvare = (url.searchParams.get('modelli') || `${env.GEMINI_MODELLO},gemini-3.8-flash,gemini-3.5-flash,gemini-3.5-flash-lite`).split(',').slice(0, 6);
+        for (const m of daProvare) {
+          for (const conRicerca of [false, true]) {
+            const corpo = { contents: [{ parts: [{ text: 'Rispondi solo: ok' }] }] };
+            if (conRicerca) corpo.tools = [{ google_search: {} }];
+            const t = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY || '' },
+              body: JSON.stringify(corpo)
+            });
+            const err = t.status === 200 ? null : ((await t.json().catch(() => ({}))).error || {});
+            prova[`${m}${conRicerca ? ' + ricerca Google' : ''}`] = t.status === 200 ? 'ok'
+              : `${t.status} ${(err.message || '').split('\n')[0].slice(0, 120)} ${JSON.stringify((err.details || []).filter((x) => /QuotaFailure/.test(x['@type'] || '')).map((x) => x.violations)).slice(0, 300)}`;
+          }
         }
         return rispondi({ stato: r.status, modelli, prova }, 200, null);
       } catch (e) {
