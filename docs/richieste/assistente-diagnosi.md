@@ -6,6 +6,14 @@ Ho provato "Ho un guasto" con un caso reale: nella casa di campagna ho un impian
 
 La risposta è stata generica ("prova a scollegare e ricollegare"). Dopo la prima risposta **non posso aggiungere foto**, l'app **non me le chiede** e **non mi fa domande** per capire meglio. Così non è un assistente, è una ricerca.
 
+## A chi serve l'app (i tre profili)
+
+- **Semplice**: la do ai miei nonni. Deve risolvere da soli la maggior parte dei problemi "stupidi" di tutti i giorni con telefono, TV e decoder, macchina (es. Bluetooth), Wi-Fi, WhatsApp. Domande facilissime, una foto alla volta, passaggi letti a voce, e se non ce la fanno il tasto per chiamarmi.
+- **Standard**: la uso io per i problemi più seri: es. una stampante che non va, un collegamento elettrico, un impianto. Deve dare **schemi dei collegamenti** quando servono, foto da fare, misure da prendere.
+- **Professionista**: **stesse funzioni della Standard**, non una versione diversa; cambia solo il livello di dettaglio: **più schemi e più dettagliati**, linguaggio tecnico, parametri, misure e riferimenti alle norme. Restano sempre gli avvisi di sicurezza.
+
+In tutti e tre i profili la diagnosi è la stessa conversazione guidata descritta sotto: cambiano tono, quantità di dettaglio e numero di schemi.
+
 ## Cosa voglio
 
 La diagnosi deve diventare una **conversazione guidata**, come un tecnico esperto al telefono.
@@ -25,6 +33,7 @@ La diagnosi deve diventare una **conversazione guidata**, come un tecnico espert
     - Mostra le **cause probabili in ordine**, con quanto è probabile ciascuna, e le aggiorna dopo ogni risposta o foto.
     - Propone le verifiche **dalla più semplice e sicura alla più complessa**.
     - Niente consigli generici tipo "scollega e ricollega" se non c'è un motivo preciso; quando consiglia qualcosa, dice **perché**.
+    - Quando la soluzione riguarda collegamenti (elettrici, cavi, stampanti, impianti) mostra uno **schema** (SVG), più dettagliato nel profilo Professionista.
     - Usa i dati del dispositivo (modello dell'inverter, batterie, pannelli) e se mancano li chiede, anche con la foto della targhetta, e li aggiunge ai dispositivi.
 
 4. **Il caso test: inverter di un impianto ad isola spento a mezzogiorno**
@@ -34,16 +43,15 @@ La diagnosi deve diventare una **conversazione guidata**, come un tecnico espert
     - Ogni diagnosi è una **scheda problema** salvata sul telefono, con tutta la conversazione, le foto e le prove fatte.
     - Posso chiuderla e **riprenderla dopo** (es. "domani vado in campagna e faccio la foto").
     - Alla fine chiede "Ha funzionato?": se sì segna il problema come risolto nello storico del dispositivo, se no continua con l'ipotesi successiva.
-    - Se non si risolve, propone "Chiedi aiuto" con un riepilogo pronto (problema, prove fatte, foto) da mandare al tecnico.
+    - Se non si risolve, propone "Chiedi aiuto" con un riepilogo pronto (problema, prove fatte, foto) da mandare al tecnico o a me.
 
-6. **Sicurezza e profili**
+6. **Sicurezza**
     - Impianti con batterie: avvisi su correnti continue elevate, cortocircuiti, isolamento, protezioni prima di toccare i collegamenti.
-    - Il profilo cambia il tono: Semplice fa domande facilissime e una foto alla volta; Professionista va dritto a misure e parametri tecnici.
 
 ## Lato tecnico
 
 - Usa Gemini in modalità **multi-turno**: a ogni messaggio il worker manda la cronologia della scheda problema, le foto, i dispositivi e il profilo.
-- Gemini risponde in JSON con: domande da fare (con eventuali pulsanti), foto richieste, ipotesi con probabilità, prossima verifica, eventuale soluzione e avvisi di sicurezza.
+- Gemini risponde in JSON con: domande da fare (con eventuali pulsanti), foto richieste, ipotesi con probabilità, prossima verifica, eventuale schema, eventuale soluzione e avvisi di sicurezza.
 - Ridimensiona le foto sul telefono prima dell'invio per restare nella quota gratuita.
 
 Prima di scrivere codice, mostrami il piano e come cambia la schermata della diagnosi.
