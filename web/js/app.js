@@ -2,6 +2,13 @@
 (function () {
   'use strict';
 
+  // Impostazioni: la versione viene scritta dalla pubblicazione automatica
+  const GLS = window.GLS = {
+    versione: '__VERSIONE__',
+    worker: 'https://gls-help.info-area30.workers.dev', // server (Cloudflare Worker)
+    profilo: null
+  };
+
   // ---------- Icone (SVG semplici, a tratto) ----------
   const I = {
     cerca: '<path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/><path d="m16 16 5 5"/>',

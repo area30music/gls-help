@@ -7,7 +7,6 @@ const FILE = [
   './',
   'index.html',
   'css/app.css',
-  'js/config.js',
   'js/db.js',
   'js/app.js',
   'manifest.webmanifest',

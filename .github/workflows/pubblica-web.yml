@@ -25,7 +25,7 @@ jobs:
       - name: Numero di versione
         run: |
           V="$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}"
-          sed -i "s/__VERSIONE__/$V/g" web/sw.js web/js/config.js
+          sed -i "s/__VERSIONE__/$V/g" web/sw.js web/js/app.js
           echo "Versione $V"
 
       - uses: actions/configure-pages@v6
