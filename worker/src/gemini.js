@@ -1,0 +1,43 @@
+// Chiamate all'API di Gemini (piano gratuito) con ricerca Google integrata.
+
+const BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
+// Prima il modello indicato nelle impostazioni, poi le alternative se non esiste più
+const MODELLI_RISERVA = ['gemini-flash-latest', 'gemini-2.5-flash'];
+
+export async function chiediGemini(env, prompt, { ricercaGoogle = false, temperatura = 0.2 } = {}) {
+  if (!env.GEMINI_API_KEY) throw new Error('Chiave Gemini mancante');
+  const modelli = [...new Set([env.GEMINI_MODELLO, ...MODELLI_RISERVA].filter(Boolean))];
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: { temperature: temperatura }
+  };
+  if (ricercaGoogle) body.tools = [{ google_search: {} }];
+
+  let ultimoErrore;
+  for (const modello of modelli) {
+    const r = await fetch(`${BASE}${modello}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+      body: JSON.stringify(body)
+    });
+    if (r.status === 404) { ultimoErrore = new Error(`Modello ${modello} non disponibile`); continue; }
+    if (r.status === 429) throw new Error('Quota gratuita di Gemini esaurita per ora: riprova tra qualche minuto');
+    if (!r.ok) throw new Error(`Gemini ha risposto ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const dati = await r.json();
+    const candidato = (dati.candidates || [])[0] || {};
+    const testo = ((candidato.content || {}).parts || []).map((p) => p.text || '').join('');
+    const fonti = ((candidato.groundingMetadata || {}).groundingChunks || [])
+      .map((c) => c.web).filter(Boolean).map((w) => ({ url: w.uri, titolo: w.title || '' }));
+    return { testo, fonti, modello };
+  }
+  throw ultimoErrore || new Error('Nessun modello Gemini disponibile');
+}
+
+// Estrae il primo oggetto JSON da una risposta di testo
+export function leggiJSON(testo) {
+  const pulito = String(testo || '').replace(/```(?:json)?/gi, '');
+  const inizio = pulito.indexOf('{');
+  const fine = pulito.lastIndexOf('}');
+  if (inizio < 0 || fine <= inizio) throw new Error('Risposta di Gemini non in JSON');
+  return JSON.parse(pulito.slice(inizio, fine + 1));
+}

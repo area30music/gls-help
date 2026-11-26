@@ -6,5 +6,7 @@ compatibility_date = "2025-06-01"
 workers_dev = true
 
 [vars]
+# Modello di Gemini (se sparisce, il server prova da solo le alternative)
+GEMINI_MODELLO = "gemini-flash-latest"
 # Siti autorizzati a usare il server, separati da virgola
 ORIGINI_AMMESSE = "https://area30music.github.io,http://localhost:8010,http://127.0.0.1:8010"
