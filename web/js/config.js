@@ -1,4 +1,4 @@
-// Impostazioni dell'app. __VERSIONE__ viene sostituito dalla pubblicazione automatica.
+// Impostazioni dell'app. La versione viene scritta dalla pubblicazione automatica.
 window.GLS = {
   versione: '__VERSIONE__',
   // Indirizzo del server (Cloudflare Worker)

@@ -1,5 +1,5 @@
 // Service worker di GLS Help: uso senza internet e aggiornamenti.
-// __VERSIONE__ viene sostituito a ogni pubblicazione: così il telefono capisce che c'è una versione nuova.
+// La versione viene scritta a ogni pubblicazione: così il telefono capisce che c'è una versione nuova.
 const VERSIONE = '__VERSIONE__';
 const CACHE = 'gls-help-' + VERSIONE;
 
