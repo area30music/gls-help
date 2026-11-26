@@ -86,6 +86,20 @@ export async function cercaTavily(env, query, { max = 8 } = {}) {
 const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 const compatto = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+// Il testo contiene il codice del modello? ("f1000" sì in "scf1000series", no in "scf10000")
+function contieneModello(testo, pezzo) {
+  if (!pezzo) return true;
+  let i = testo.indexOf(pezzo);
+  while (i >= 0) {
+    const dopo = testo[i + pezzo.length] || '';
+    const prima = testo[i - 1] || '';
+    const finisceConNumero = /\d$/.test(pezzo);
+    const iniziaConNumero = /^\d/.test(pezzo);
+    if (!(finisceConNumero && /\d/.test(dopo)) && !(iniziaConNumero && /\d/.test(prima))) return true;
+    i = testo.indexOf(pezzo, i + 1);
+  }
+  return false;
+}
 
 // La pagina esiste davvero e parla di quel modello?
 async function paginaValida(url, modello, { senzaRedirect = false, sitoUfficiale = false, giaVerificato = false } = {}) {
@@ -103,7 +117,7 @@ async function paginaValida(url, modello, { senzaRedirect = false, sitoUfficiale
     const pezzo = compatto(modello).slice(0, 7);
     if (!pezzo) { try { await r.body?.cancel(); } catch { /* */ } return true; }
     const html = (await r.text()).slice(0, 400000);
-    return compatto(html).includes(pezzo);
+    return contieneModello(compatto(html), pezzo);
   } catch { return false; }
 }
 
@@ -178,7 +192,7 @@ Massimo 6, solo indirizzi visti nei risultati.`, { ricercaGoogle: true });
     for (const x of risultati) {
       const testoRis = compatto(x.titolo + ' ' + x.url + ' ' + x.estratto);
       if (negozi.test(x.url)) continue;
-      if (pezzo && !testoRis.includes(pezzo)) continue;
+      if (pezzo && !contieneModello(testoRis, pezzo)) continue;
       if (!/manual|istruzion|guida|guide|pdf|support|download|libretto|handbuch/i.test(x.titolo + ' ' + x.url)) continue;
       daWeb.push({ titolo: x.titolo || 'Manuale', url: x.url, lingua: /lang=it|\/it[_/-]|italian|italiano|\.it\//i.test(x.url + x.titolo) ? 'it' : '', genere: /support|download/i.test(x.url) ? 'supporto' : 'utente', giaVerificato: true });
     }
@@ -191,7 +205,8 @@ Massimo 6, solo indirizzi visti nei risultati.`, { ricercaGoogle: true });
   for (const p of (Array.isArray(dati.pagine) ? dati.pagine : []).slice(0, 5)) {
     const url = soloHttps(p.url);
     if (!url) continue;
-    const sitoUfficiale = marcaCompatta.length > 2 && compatto(fonte(url)).includes(marcaCompatta);
+    // Con risultati veri dal web, le pagine proposte da Gemini devono rispondere davvero (niente eccezioni per i 403)
+    const sitoUfficiale = !daWeb.length && marcaCompatta.length > 2 && compatto(fonte(url)).includes(marcaCompatta);
     candidati.push({ titolo: p.titolo || 'Pagina di supporto', url, lingua: p.lingua || '', genere: p.genere || 'supporto', sitoUfficiale });
   }
   if (modelloOk) {
