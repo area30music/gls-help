@@ -23,6 +23,23 @@ Sviluppa **per fasi** e fermati alla fine di ogni fase per farmi provare. Prima 
 - Barra di ricerca in ogni sezione con **pulsante microfono**: registra l'audio e lo manda al worker.
 - **Esporta e importa backup** in un unico file JSON (foto comprese), da salvare su iCloud, Google Drive o NAS.
 
+## Profili di utilizzo
+
+Al primo avvio l'app chiede "Come vuoi usarla?" e si sceglie uno dei tre profili. Si può cambiare in qualsiasi momento dalle impostazioni; la scelta è salvata sul telefono, quindi ogni persona ha il suo profilo. Il profilo scelto viene passato al worker, che adatta il linguaggio e il dettaglio delle risposte di Gemini.
+
+1. **Semplice** (per persone anziane o poco pratiche di tecnologia):
+    - Caratteri e pulsanti molto grandi, alto contrasto, pochissime opzioni a schermo.
+    - Home con un grande pulsante "Chiedimi aiuto" con il microfono, oltre alle sezioni essenziali.
+    - Risposte brevi, un passaggio alla volta, lette ad alta voce, con pulsanti grandi "Avanti" e "Ripeti".
+    - Adatto anche alle domande di tecnologia di base (es. "come mando una foto su WhatsApp", "come faccio una videochiamata").
+    - Pulsante **"Chiama Gabriele"** (nome e numero del contatto di aiuto impostabili nelle impostazioni) per chiamare o scrivere su WhatsApp quando non si riesce.
+    - Niente guide pericolose fai da te: per elettricità, gas e acqua consiglia sempre di chiamare un professionista.
+2. **Standard**: l'app completa come descritta sotto.
+3. **Professionista** (per chi lavora nel settore, es. elettricista):
+    - Linguaggio tecnico, schemi dei collegamenti dettagliati, sezioni dei cavi, riferimenti alle norme (es. CEI 64-8) quando pertinenti.
+    - Niente consiglio "chiama un professionista", ma **restano sempre gli avvisi di sicurezza** (togliere tensione, verificare l'assenza di tensione).
+    - Risposte più dense e veloci, meno spiegazioni di base.
+
 ## Grafica
 
 - Tema **chiaro e pulito**, con un solo colore forte: **arancione** (indicativo `#F28C28`) per pulsanti e elementi importanti.
@@ -39,7 +56,7 @@ Sviluppa **per fasi** e fermati alla fine di ogni fase per farmi provare. Prima 
 
 ## Worker Cloudflare
 
-- Usa l'**API gratuita di Gemini** per: lettura di targhette e scontrini dalle foto, trascrizione e comprensione dell'audio, lettura dei PDF, ricerca con Google integrata, diagnosi, guide, traduzione in italiano. Risposte sempre in JSON strutturato.
+- Usa l'**API gratuita di Gemini** per: lettura di targhette e scontrini dalle foto, trascrizione e comprensione dell'audio, lettura dei PDF, ricerca con Google integrata, diagnosi, guide, traduzione in italiano. Risposte sempre in JSON strutturato, adattate al profilo dell'utente.
 - Usa **YouTube Data API** e **iFixit API** per video e guide.
 - Endpoint: `identify`, `search`, `diagnose`, `howto`, `error-code`, `receipt`, `transcribe`, `push/subscribe`, `maintenance`, `calendar/<codice>.ics`.
 - Per notifiche e calendario conserva sul server solo il minimo, in Cloudflare KV, legato a un codice anonimo del telefono: iscrizione push e scadenze delle manutenzioni.
@@ -48,16 +65,18 @@ Sviluppa **per fasi** e fermati alla fine di ogni fase per farmi provare. Prima 
 
 ## Regole di sicurezza nelle risposte
 
-- Ogni guida elettrica inizia con "stacca la corrente" e segnala quando serve un elettricista abilitato.
+- Ogni guida elettrica inizia con "stacca la corrente" (in tutti i profili).
+- Nei profili Semplice e Standard segnala quando serve un elettricista abilitato.
 - Avvisi per acqua, gas, gas refrigerante e condensatori.
 - I manuali si collegano con il link; si salvano solo per uso personale, senza ripubblicarli.
 
 ## Fasi
 
-1. Struttura del repository, pubblicazione automatica, scheletro della web app con le tre sezioni, grafica e logo.
+1. Struttura del repository, pubblicazione automatica, scheletro della web app con le tre sezioni, grafica, logo e scelta del profilo al primo avvio.
 2. Ricerca manuali e video da marca e modello.
 3. Foto della targhetta e ricerca a voce.
 4. Diagnosi con IA, confronto fonti, codici errore, ricambi, chiedi aiuto.
 5. Come si fa completa, con mani libere e guide offline.
 6. I miei oggetti: garanzie, storico, manutenzioni, notifiche, calendario, backup.
-7. Extra futuri: illustrazioni passo passo dalle immagini dei manuali; video 3D solo quando esisteranno strumenti affidabili.
+7. Profilo Semplice completo (pulsante "Chiedimi aiuto", "Chiama Gabriele") e profilo Professionista completo.
+8. Extra futuri: illustrazioni passo passo dalle immagini dei manuali; video 3D solo quando esisteranno strumenti affidabili.
