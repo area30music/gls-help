@@ -1,6 +1,6 @@
 // Funzioni di intelligenza artificiale: voce, foto della targhetta, diagnosi del guasto.
 import { chiediGemini, leggiJSON } from './gemini.js';
-import { cercaYoutube, cercaTavily } from './fonti.js';
+import { cercaYoutube, cercaTavily, contieneModello } from './fonti.js';
 
 const testo = (v, max = 300) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, max);
 const MAX_BASE64 = 8 * 1024 * 1024; // circa 6 MB di file
@@ -82,9 +82,21 @@ export async function diagnostica(env, corpo) {
   // Fonti reali dal web (se c'è la chiave Tavily): rendono la risposta specifica per il modello
   const oggettoTesto = [p.marca, p.modello, p.tipo].filter(Boolean).join(' ');
   let fontiWeb = [];
-  try {
-    fontiWeb = (await cercaTavily(env, [oggettoTesto, codice ? `errore ${codice}` : '', problema].filter(Boolean).join(' ').slice(0, 300), { max: 6 })).slice(0, 6);
-  } catch { /* facoltativo */ }
+  let manualePdf = null;
+  const compatto = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const [webProblema, webManuale] = await Promise.allSettled([
+    cercaTavily(env, [oggettoTesto, codice ? `errore ${codice}` : '', problema].filter(Boolean).join(' ').slice(0, 300), { max: 6 }),
+    p.modello ? cercaTavily(env, `${p.marca} ${p.modello} manual pdf`, { max: 6 }) : Promise.resolve([])
+  ]);
+  if (webProblema.status === 'fulfilled') fontiWeb = webProblema.value.slice(0, 6);
+  if (webManuale.status === 'fulfilled') {
+    const pezzo = compatto(p.modello).replace(/^(surecolor|sc)/, '');
+    manualePdf = webManuale.value.find((x) => /\.pdf(\?|$)/i.test(x.url) && !/scribd|coursehero|studocu/i.test(x.url)
+      && contieneModello(compatto(x.titolo + ' ' + x.url + ' ' + x.estratto), pezzo)) || null;
+  }
+  const leggiManuale = manualePdf
+    ? `\nManuale ufficiale del prodotto (PDF, aprilo e leggilo): ${manualePdf.url}\nUsalo per dare indicazioni precise per QUESTO modello (menu, nomi dei pulsanti, procedure) e indica le pagine.\n`
+    : '';
   const contesto = fontiWeb.length
     ? `\nInformazioni trovate sul web (usale se pertinenti; se sono in contrasto tra loro, dillo nella nota sull'affidabilità):\n${fontiWeb.map((f, n) => `[${n + 1}] ${f.titolo} (${f.url})\n${f.estratto}`).join('\n\n')}\n`
     : '';
@@ -95,12 +107,13 @@ ${REGOLE_PROFILO[profilo]}
 Oggetto: ${[p.tipo, p.marca, p.modello].filter(Boolean).join(' ') || 'non indicato (deducilo dalla descrizione)'}
 Problema descritto: ${problema || '(nessuna descrizione)'}
 ${codice ? `Codice di errore sul display: ${codice}` : ''}
-${contesto}
+${contesto}${leggiManuale}
 Regole di sicurezza OBBLIGATORIE:
 - Se c'è da toccare parti elettriche, il PRIMO passaggio è "Stacca la corrente" (togli la spina o abbassa l'interruttore) ${profilo === 'professionista' ? 'e verifica l\'assenza di tensione' : ''}.
 - Avvisa per acqua (chiudi il rubinetto, attenzione all'acqua residua), gas (mai fai da te sull'impianto gas), gas refrigerante (solo frigorista abilitato), condensatori (possono restare carichi anche a spina staccata), parti calde o taglienti.
 - Non inventare codici di ricambio: se non sei sicuro, lascia il codice vuoto.
 - Sii onesto sull'affidabilità: se il modello è poco noto o il problema è vago, dillo.
+- Sii CONCRETO e SPECIFICO per questo modello: niente consigli generici validi per qualsiasi apparecchio. Considera che tipo di macchina è davvero (es. una stampante DTG per tessuti usa inchiostri a pigmento e bianco, non sublimazione).
 
 Rispondi SOLO con JSON:
 {
@@ -111,7 +124,8 @@ Rispondi SOLO con JSON:
  "sicurezza": ["avvisi di sicurezza, il più importante per primo"],
  "professionista": {"serve": false, "chi": "es. elettricista abilitato", "perche": ""},
  "cause": [{"causa": "", "probabilita": "alta|media|bassa", "come_verificare": ""}],
- "passi": [{"titolo": "azione breve", "dettaglio": "come farlo", "attenzione": ""}],
+ "passi": [{"titolo": "azione breve", "dettaglio": "come farlo, con i nomi esatti di menu e pulsanti di questo modello", "attenzione": "", "pagina_manuale": ""}],
+ "pagine_manuale": [{"pagina": "", "argomento": ""}],
  "ricambi": [{"nome": "nome del pezzo in italiano", "codice": "", "ricerca": "testo da cercare per trovarlo"}],
  "difficolta": "facile|media|difficile",
  "tempo": "es. 15 minuti",
@@ -124,8 +138,10 @@ Rispondi SOLO con JSON:
 }
 "codice_errore" vuoto se non c'è un codice. "ricambi" vuoto se non servono pezzi. Massimo 4 cause e ${profilo === 'semplice' ? 5 : 10} passi.`;
 
+  const conManuale = (pr) => chiediGemini(env, pr, { json: true, qualita: 'brava', temperatura: 0.3, leggiIndirizzi: Boolean(manualePdf) })
+    .catch(() => chiediGemini(env, pr.replace(leggiManuale, ''), { json: true, qualita: 'brava', temperatura: 0.3 }));
   const [risposta, video] = await Promise.allSettled([
-    chiediGemini(env, prompt, { json: true, qualita: 'brava', temperatura: 0.3 }),
+    conManuale(prompt),
     cercaYoutube(env, [p.marca, p.modello, p.tipo, codice, problema].filter(Boolean).join(' ').slice(0, 120))
   ]);
   if (risposta.status !== 'fulfilled') throw risposta.reason;
@@ -162,7 +178,11 @@ Rispondi SOLO con JSON:
     sicurezza: lista(d.sicurezza, 6).map((x) => testo(x, 300)).filter(Boolean),
     professionista: d.professionista && d.professionista.serve ? { chi: testo(d.professionista.chi, 80), perche: testo(d.professionista.perche, 300) } : null,
     cause: lista(d.cause, 4).map((c) => ({ causa: testo(c.causa, 160), probabilita: testo(c.probabilita, 10), verifica: testo(c.come_verificare, 300) })).filter((c) => c.causa),
-    passi: lista(d.passi, profilo === 'semplice' ? 5 : 10).map((s) => ({ titolo: testo(s.titolo, 120), dettaglio: testo(s.dettaglio, 600), attenzione: testo(s.attenzione, 300) })).filter((s) => s.titolo),
+    passi: lista(d.passi, profilo === 'semplice' ? 5 : 10).map((s) => ({ titolo: testo(s.titolo, 120), dettaglio: testo(s.dettaglio, 600), attenzione: testo(s.attenzione, 300), pagina: testo(s.pagina_manuale, 12) })).filter((s) => s.titolo),
+    manuale: manualePdf ? {
+      url: manualePdf.url, titolo: testo(manualePdf.titolo, 120),
+      pagine: lista(d.pagine_manuale, 6).map((x) => ({ pagina: testo(x.pagina, 12), argomento: testo(x.argomento, 120) })).filter((x) => x.pagina)
+    } : null,
     ricambi,
     difficolta: testo(d.difficolta, 20),
     tempo: testo(d.tempo, 40),
@@ -173,7 +193,124 @@ Rispondi SOLO con JSON:
     video: video.status === 'fulfilled' ? video.value : [],
     fonti: (Array.isArray(d.fonti_usate) ? d.fonti_usate : []).map((n) => fontiWeb[Number(n) - 1]).filter(Boolean)
       .map((f) => ({ titolo: f.titolo, url: f.url })).slice(0, 5),
+    fonte: (manualePdf ? 'Gemini con il manuale ufficiale e fonti dal web' : fontiWeb.length ? 'Gemini con fonti dal web' : 'Conoscenze di Gemini') + ' (' + risposta.value.modello + ')',
+    data: new Date().toISOString()
+  };
+}
+
+
+// ---------- manuale: domande al manuale (anche in inglese), risposta in italiano ----------
+export async function chiediManuale(env, corpo) {
+  const url = String(corpo.url || '');
+  if (!/^https:\/\//.test(url)) throw new Error('Indirizzo del manuale non valido');
+  const p = corpo.prodotto || {};
+  const domanda = testo(corpo.domanda, 500);
+  const profilo = REGOLE_PROFILO[corpo.profilo] ? corpo.profilo : 'standard';
+  const prompt = `Sei l'assistente di GLS Help. Apri e leggi questo manuale: ${url}
+Prodotto: ${[p.tipo, p.marca, p.modello].filter(Boolean).join(' ') || 'quello del manuale'}
+${REGOLE_PROFILO[profilo]}
+
+${domanda
+    ? `Domanda della persona: "${domanda}"\nRispondi usando il manuale: spiega in italiano cosa fare, passo passo, con le pagine.`
+    : `Fai una guida in italiano alle parti più utili del manuale: cosa contiene, manutenzione ordinaria, risoluzione dei problemi e codici di errore principali, con le pagine.`}
+Se il manuale è in un'altra lingua, traduci tu in italiano. Non inventare: se il manuale non ne parla, dillo.
+
+Rispondi SOLO con JSON:
+{"trovato": true, "lingua_manuale": "en", "risposta": "spiegazione in italiano", "passi": [{"titolo": "", "dettaglio": "", "pagina": ""}], "sicurezza": [""], "pagine": [{"pagina": "", "argomento": ""}]}`;
+  const r = await chiediGemini(env, prompt, { json: true, leggiIndirizzi: true, temperatura: 0.2 });
+  const d = leggiJSON(r.testo);
+  const lista = (v, n) => (Array.isArray(v) ? v : []).slice(0, n);
+  return {
+    trovato: d.trovato !== false,
+    linguaManuale: testo(d.lingua_manuale, 5),
+    risposta: testo(d.risposta, 1500),
+    passi: lista(d.passi, 12).map((s) => ({ titolo: testo(s.titolo, 120), dettaglio: testo(s.dettaglio, 600), pagina: testo(s.pagina, 12) })).filter((s) => s.titolo),
+    sicurezza: lista(d.sicurezza, 5).map((x) => testo(x, 300)).filter(Boolean),
+    pagine: lista(d.pagine, 10).map((x) => ({ pagina: testo(x.pagina, 12), argomento: testo(x.argomento, 120) })).filter((x) => x.pagina),
+    url,
+    fonte: 'Manuale letto da Gemini (' + r.modello + ')'
+  };
+}
+
+// ---------- howto: guide "Come si fa" ----------
+export async function guidaComeSiFa(env, corpo) {
+  const richiesta = testo(corpo.richiesta, 300);
+  if (!richiesta) throw new Error('Scrivi cosa vuoi fare');
+  const categoria = testo(corpo.categoria, 40);
+  const profilo = REGOLE_PROFILO[corpo.profilo] ? corpo.profilo : 'standard';
+  let fontiWeb = [];
+  try { fontiWeb = (await cercaTavily(env, `come ${richiesta} guida passo passo`, { max: 5 })).slice(0, 5); } catch { /* facoltativo */ }
+  const contesto = fontiWeb.length
+    ? `\nInformazioni trovate sul web (usale se affidabili):\n${fontiWeb.map((f, n) => `[${n + 1}] ${f.titolo} (${f.url})\n${f.estratto}`).join('\n\n')}\n` : '';
+
+  const prompt = `Sei l'esperto di fai da te di GLS Help, un'app italiana.
+${REGOLE_PROFILO[profilo]}
+Lavoro richiesto: "${richiesta}"${categoria ? ` (categoria: ${categoria})` : ''}
+${contesto}
+Regole di sicurezza OBBLIGATORIE:
+- Lavori elettrici: il PRIMO passaggio è staccare la corrente dal quadro e ${profilo === 'professionista' ? 'verificare l\'assenza di tensione con lo strumento' : 'verificare che sia davvero spenta'}. ${profilo === 'professionista' ? '' : 'Segnala quando la legge richiede un elettricista abilitato (DM 37/08), es. nuove linee o modifiche all\'impianto.'}
+- Acqua: chiudere il rubinetto generale. Gas: mai fai da te sull'impianto. Auto: freno a mano, motore spento, cavalletti e non solo il cric.
+- Materiali e misure realistici, prezzi indicativi in euro (Italia).
+
+Rispondi SOLO con JSON:
+{
+ "titolo": "titolo breve della guida",
+ "categoria": "elettricità|idraulica|montaggio mobili|auto|tecnologia|altro",
+ "difficolta": "facile|media|difficile",
+ "tempo": "es. 30 minuti",
+ "fai_da_te": {"consiglio": "fai da te|professionista", "perche": "", "costo_fai_da_te": "es. 15-25 €", "costo_professionista": "es. 60-100 €"},
+ "sicurezza": [""],
+ "attrezzi": [""],
+ "materiali": [{"nome": "", "quantita": "", "note": "es. misura o caratteristica da chiedere in negozio"}],
+ "passi": [{"titolo": "azione breve", "dettaglio": "come farlo con precisione", "attenzione": ""}],
+ "consigli": [""],
+ "errori_comuni": [""],
+ "ricerca_video": "4-7 parole per cercare un video tutorial su YouTube",
+ "fonti_usate": [1]
+}
+Massimo ${profilo === 'semplice' ? 6 : 12} passi.`;
+
+  const [risposta, video] = await Promise.allSettled([
+    chiediGemini(env, prompt, { json: true, qualita: 'brava', temperatura: 0.3 }),
+    cercaYoutube(env, richiesta + ' tutorial')
+  ]);
+  if (risposta.status !== 'fulfilled') throw risposta.reason;
+  const d = leggiJSON(risposta.value.testo);
+  const lista = (v, n) => (Array.isArray(v) ? v : []).slice(0, n);
+  const fdt = d.fai_da_te || {};
+  return {
+    richiesta,
+    titolo: testo(d.titolo, 120) || richiesta,
+    categoria: testo(d.categoria, 30),
+    difficolta: testo(d.difficolta, 20),
+    tempo: testo(d.tempo, 40),
+    faiDaTe: { consiglio: testo(fdt.consiglio, 20), perche: testo(fdt.perche, 300), costoFaiDaTe: testo(fdt.costo_fai_da_te, 40), costoProfessionista: testo(fdt.costo_professionista, 40) },
+    sicurezza: lista(d.sicurezza, 6).map((x) => testo(x, 300)).filter(Boolean),
+    attrezzi: lista(d.attrezzi, 15).map((x) => testo(x, 80)).filter(Boolean),
+    materiali: lista(d.materiali, 15).map((m) => ({ nome: testo(m.nome, 80), quantita: testo(m.quantita, 30), note: testo(m.note, 120) })).filter((m) => m.nome),
+    passi: lista(d.passi, 12).map((s) => ({ titolo: testo(s.titolo, 120), dettaglio: testo(s.dettaglio, 600), attenzione: testo(s.attenzione, 300) })).filter((s) => s.titolo),
+    consigli: lista(d.consigli, 5).map((x) => testo(x, 250)).filter(Boolean),
+    errori: lista(d.errori_comuni, 5).map((x) => testo(x, 250)).filter(Boolean),
+    video: video.status === 'fulfilled' ? video.value : [],
+    fonti: lista(d.fonti_usate, 5).map((n) => fontiWeb[Number(n) - 1]).filter(Boolean).map((f) => ({ titolo: f.titolo, url: f.url })),
     fonte: (fontiWeb.length ? 'Gemini con fonti dal web' : 'Conoscenze di Gemini') + ' (' + risposta.value.modello + ')',
     data: new Date().toISOString()
   };
+}
+
+// ---------- domanda: domanda su un passaggio, anche con una foto della situazione ----------
+export async function domandaLibera(env, corpo) {
+  const domanda = testo(corpo.domanda, 500);
+  if (!domanda && !corpo.immagine) throw new Error('Scrivi la domanda');
+  const profilo = REGOLE_PROFILO[corpo.profilo] ? corpo.profilo : 'standard';
+  const parti = [];
+  if (corpo.immagine) parti.push(datiFile(corpo.immagine, corpo.mime || 'image/jpeg', ['image/']));
+  parti.push({ text: `Sei il tecnico di GLS Help. ${REGOLE_PROFILO[profilo]}
+Contesto: ${testo(corpo.contesto, 1500) || 'nessuno'}
+${corpo.immagine ? 'La persona ti manda una foto della situazione: guardala con attenzione e descrivi cosa vedi di rilevante.' : ''}
+Domanda: "${domanda || 'Cosa vedi nella foto e cosa devo fare?'}"
+Rispondi in italiano, breve e pratico, con gli avvisi di sicurezza se servono. Rispondi SOLO con JSON: {"risposta": "", "sicurezza": [""]}` });
+  const r = await chiediGemini(env, parti, { json: true, qualita: 'brava' });
+  const d = leggiJSON(r.testo);
+  return { risposta: testo(d.risposta, 1500), sicurezza: (Array.isArray(d.sicurezza) ? d.sicurezza : []).map((x) => testo(x, 300)).filter(Boolean).slice(0, 4) };
 }

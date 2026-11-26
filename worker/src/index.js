@@ -1,12 +1,11 @@
 // Server di GLS Help (Cloudflare Worker).
 import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese } from './fonti.js';
-import { trascrivi, identifica, diagnostica } from './ia.js';
+import { trascrivi, identifica, diagnostica, chiediManuale, guidaComeSiFa, domandaLibera } from './ia.js';
 
 const VERSIONE = '__VERSIONE__';
 
 // Endpoint previsti e fase in cui arrivano
 const IN_ARRIVO = {
-  howto: 5,
   receipt: 6,
   'push/subscribe': 6,
   maintenance: 6
@@ -156,16 +155,6 @@ export default {
       }, 200, origine);
     }
 
-    // Prova tecnica temporanea: Gemini può leggere un indirizzo web (url_context)?
-    if (percorso === 'prova-url') {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${url.searchParams.get('m') || 'gemini-3.5-flash-lite'}:generateContent`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-        body: JSON.stringify({ contents: [{ parts: [{ text: 'Leggi questo PDF e dimmi in italiano, in 2 frasi, cosa dice sulla pulizia della testina e a che pagina: https://download.epson-europe.com/pub/download/6636/epson663633eu.pdf' }] }], tools: [{ url_context: {} }] })
-      });
-      const t = await r.text();
-      return new Response(t.slice(0, 3000), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-
     // Il calendario (.ics) verrà aperto dalle app calendario, senza Origin: fase 6
     if (percorso.startsWith('calendar/')) {
       return rispondi({ ok: false, errore: 'Calendario in arrivo nella fase 6' }, 501, null);
@@ -190,7 +179,10 @@ export default {
     }
 
     // Voce, foto della targhetta, diagnosi del guasto e codici di errore
-    const funzioni = { transcribe: [trascrivi, 40], identify: [identifica, 20], diagnose: [diagnostica, 20], 'error-code': [diagnostica, 20] };
+    const funzioni = {
+      transcribe: [trascrivi, 40], identify: [identifica, 20], diagnose: [diagnostica, 20], 'error-code': [diagnostica, 20],
+      manuale: [chiediManuale, 20], howto: [guidaComeSiFa, 20], domanda: [domandaLibera, 40]
+    };
     if (percorso in funzioni) {
       if (request.method !== 'POST') return rispondi({ ok: false, errore: 'Usa POST' }, 405, origine);
       const [funzione, max] = funzioni[percorso];

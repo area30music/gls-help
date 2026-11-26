@@ -87,7 +87,7 @@ const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-
   .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 const compatto = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 // Il testo contiene il codice del modello? ("f1000" sì in "scf1000series", no in "scf10000")
-function contieneModello(testo, pezzo) {
+export function contieneModello(testo, pezzo) {
   if (!pezzo) return true;
   let i = testo.indexOf(pezzo);
   while (i >= 0) {
@@ -188,7 +188,7 @@ Massimo 6, solo indirizzi visti nei risultati.`, { ricercaGoogle: true });
       cercaTavily(env, `${base} manuale istruzioni pdf`),
       cercaTavily(env, `${base} user manual pdf`)
     ])).flatMap((x) => (x.status === 'fulfilled' ? x.value : []));
-    const negozi = /amazon\.|ebay\.|aliexpress|idealo|trovaprezzi|youtube\.com|facebook\.com|instagram/i;
+    const negozi = /amazon\.|ebay\.|aliexpress|idealo|trovaprezzi|youtube\.com|facebook\.com|instagram|scribd\.|coursehero|studocu|issuu\.|pdfcoffee|dokumen\.|idoc\.pub|yumpu|documents\.pub|vdocuments|manualsbase\.com\/buy/i;
     for (const x of risultati) {
       const testoRis = compatto(x.titolo + ' ' + x.url + ' ' + x.estratto);
       if (negozi.test(x.url)) continue;
@@ -227,13 +227,16 @@ Massimo 6, solo indirizzi visti nei risultati.`, { ricercaGoogle: true });
     return !visti.has(k) && visti.add(k);
   }).slice(0, 14);
   const controllati = await Promise.all(unici.map(async (c) => ((await paginaValida(c.url, modelloOk, c)) ? c : null)));
+  // Prima i manuali in italiano, poi i PDF ufficiali
+  const peso = (m) => (m.lingua === 'it' ? 0 : 2) + (/\.pdf(\?|$)/i.test(m.url) ? 0 : 1);
+  const ordinati = controllati.filter(Boolean).sort((x, y) => peso(x) - peso(y));
 
   return {
     prodotto,
     ricercaInglese: dati.ricerca_inglese || '',
     avviso,
     controllati: unici.map((c, n) => ({ url: c.url, ok: Boolean(controllati[n]) })),
-    manuali: controllati.filter(Boolean).slice(0, 6).map((m) => ({
+    manuali: ordinati.slice(0, 6).map((m) => ({
       titolo: String(m.titolo).slice(0, 140),
       url: m.url,
       lingua: String(m.lingua || '').slice(0, 5),

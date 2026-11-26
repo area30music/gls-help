@@ -14,7 +14,7 @@ export const ricercaGoogleDisponibile = () => Date.now() > ricercaGoogleBloccata
  * @param parti testo (stringa) oppure elenco di parti Gemini ({text} / {inline_data})
  * @param opzioni.qualita 'veloce' (predefinito) o 'brava' (per diagnosi e foto)
  */
-export async function chiediGemini(env, parti, { ricercaGoogle = false, json = false, temperatura = 0.2, qualita = 'veloce' } = {}) {
+export async function chiediGemini(env, parti, { ricercaGoogle = false, leggiIndirizzi = false, json = false, temperatura = 0.2, qualita = 'veloce' } = {}) {
   if (!env.GEMINI_API_KEY) throw new Error('Chiave Gemini mancante');
   if (ricercaGoogle && !ricercaGoogleDisponibile()) throw new Error('Ricerca Google di Gemini non disponibile (piano gratuito)');
 
@@ -25,7 +25,9 @@ export async function chiediGemini(env, parti, { ricercaGoogle = false, json = f
     generationConfig: { temperature: temperatura }
   };
   if (ricercaGoogle) body.tools = [{ google_search: {} }];
-  if (json && !ricercaGoogle) body.generationConfig.responseMimeType = 'application/json';
+  // Gemini apre da solo pagine web e PDF indicati nel testo (funziona nel piano gratuito)
+  if (leggiIndirizzi) body.tools = [...(body.tools || []), { url_context: {} }];
+  if (json && !body.tools) body.generationConfig.responseMimeType = 'application/json';
 
   let ultimoErrore;
   const corpo = JSON.stringify(body);
@@ -68,7 +70,7 @@ export async function chiediGemini(env, parti, { ricercaGoogle = false, json = f
     const candidato = (dati.candidates || [])[0] || {};
     const testo = ((candidato.content || {}).parts || []).map((p) => p.text || '').join('');
     // Risposta JSON rotta o tagliata: si riprova con il modello successivo
-    if (json && !ricercaGoogle) {
+    if (json) {
       try { leggiJSON(testo); } catch { ultimoErrore = new Error('Risposta di Gemini incompleta: riprova'); continue; }
     }
     const fonti = ((candidato.groundingMetadata || {}).groundingChunks || [])
