@@ -92,7 +92,7 @@
     return `
       <div class="elenco-card">
         ${Object.entries(PROFILI).map(([id, pr]) => `
-          <button type="button" class="card${GLS.profilo === id ? ' scelto' : ''}" data-profilo="${id}" aria-pressed="${GLS.profilo === id}">
+          <button type="button" class="card${GLS.profilo === id ? ' scelto' : ''}" data-scegli-profilo="${id}" aria-pressed="${GLS.profilo === id}">
             <span class="icona">${svg(pr.icona)}</span>
             <span class="testo"><span class="tit">${pr.nome}${GLS.profilo === id ? ' <span class="etichetta">Attivo</span>' : ''}</span><span class="sotto">${esc(pr.testo)}</span></span>
           </button>`).join('')}
@@ -346,9 +346,9 @@
 
   // Funzioni non ancora pronte, ricerca e microfono
   vista.addEventListener('click', async (e) => {
-    const scelta = e.target.closest('[data-profilo]');
+    const scelta = e.target.closest('[data-scegli-profilo]');
     if (scelta) {
-      const id = scelta.dataset.profilo;
+      const id = scelta.dataset.scegliProfilo;
       try { await DB.salva('impostazioni', { id: 'profilo', valore: id }); } catch (err) { console.warn(err); }
       const primoAvvio = !GLS.profilo;
       applicaProfilo(id);
