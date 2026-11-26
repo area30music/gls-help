@@ -1,5 +1,5 @@
 // Server di GLS Help (Cloudflare Worker).
-import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese, cercaWeb, cercaDuckDuckGo, cercaBing } from './fonti.js';
+import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese, cercaWeb, cercaDuckDuckGo, cercaBing, cercaDuckDuckGoLite, cercaBingHtml } from './fonti.js';
 
 const VERSIONE = '__VERSIONE__';
 
@@ -185,7 +185,7 @@ export default {
     if (percorso === 'diagnosi/web') {
       const q = url.searchParams.get('q') || 'Samsung WW90T534DAW manuale pdf';
       const esito = {};
-      for (const [nome, fn] of [['duckduckgo', cercaDuckDuckGo], ['bing', cercaBing]]) {
+      for (const [nome, fn] of [['duckduckgo', cercaDuckDuckGo], ['duckduckgo-lite', cercaDuckDuckGoLite], ['bing', cercaBingHtml], ['bing-rss', cercaBing]]) {
         try { esito[nome] = (await fn(q)).slice(0, 8).map((x) => x.url); } catch (e) { esito[nome] = 'errore: ' + e.message; }
       }
       return rispondi(esito, 200, null);

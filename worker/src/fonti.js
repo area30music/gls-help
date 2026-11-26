@@ -56,6 +56,7 @@ export async function cercaDuckDuckGo(q) {
     const estratto = testoSemplice((/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/.exec(b) || [])[1]);
     risultati.push({ url, titolo, estratto });
   }
+  if (!risultati.length) throw new Error(`DuckDuckGo: nessun risultato (${html.length} caratteri)`);
   return risultati;
 }
 
@@ -70,6 +71,51 @@ export async function cercaBing(q) {
     titolo: testoSemplice((/<title>([\s\S]*?)<\/title>/.exec(i) || [])[1]),
     estratto: testoSemplice((/<description>([\s\S]*?)<\/description>/.exec(i) || [])[1])
   })).filter((x) => x.url);
+}
+
+export async function cercaDuckDuckGoLite(q) {
+  const r = await conTempo(fetch('https://lite.duckduckgo.com/lite/?q=' + encodeURIComponent(q), {
+    method: 'GET', headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8', Accept: 'text/html' }
+  }));
+  if (!r.ok) throw new Error(`DuckDuckGo lite ha risposto ${r.status}`);
+  const html = await r.text();
+  const risultati = [];
+  const re = /<a[^>]+href="([^"]+)"[^>]*class=['"]result-link['"][^>]*>([\s\S]*?)<\/a>/g;
+  let m;
+  while ((m = re.exec(html))) {
+    let url = decodificaHtml(m[1]);
+    if (url.startsWith('//')) url = 'https:' + url;
+    try { const u = new URL(url); if (u.hostname.endsWith('duckduckgo.com')) { const v = u.searchParams.get('uddg'); if (!v) continue; url = v; } } catch { continue; }
+    risultati.push({ url, titolo: testoSemplice(m[2]), estratto: '' });
+  }
+  if (!risultati.length) throw new Error(`DuckDuckGo lite: nessun risultato (${html.length} caratteri)`);
+  return risultati;
+}
+
+export async function cercaBingHtml(q) {
+  const r = await conTempo(fetch('https://www.bing.com/search?setlang=it&cc=IT&q=' + encodeURIComponent(q), {
+    headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8', Accept: 'text/html' }
+  }));
+  if (!r.ok) throw new Error(`Bing ha risposto ${r.status}`);
+  const html = await r.text();
+  const risultati = [];
+  for (const b of html.split('<li class="b_algo"').slice(1)) {
+    const a = /<h2[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/.exec(b);
+    if (!a) continue;
+    let url = decodificaHtml(a[1]);
+    // I link di Bing passano da bing.com/ck/a?...&u=a1<base64>
+    try {
+      const u = new URL(url);
+      if (u.hostname.endsWith('bing.com') && u.searchParams.get('u')) {
+        const cod = u.searchParams.get('u').replace(/^a1/, '').replace(/-/g, '+').replace(/_/g, '/');
+        url = atob(cod + '==='.slice((cod.length + 3) % 4));
+      }
+    } catch { continue; }
+    const estratto = testoSemplice((/<p[^>]*>([\s\S]*?)<\/p>/.exec(b) || [])[1]);
+    risultati.push({ url, titolo: testoSemplice(a[2]), estratto });
+  }
+  if (!risultati.length) throw new Error(`Bing: nessun risultato (${html.length} caratteri)`);
+  return risultati;
 }
 
 export async function cercaWeb(q) {
