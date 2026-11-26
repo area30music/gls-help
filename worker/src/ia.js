@@ -95,6 +95,7 @@ Regole di sicurezza OBBLIGATORIE:
 Rispondi SOLO con JSON:
 {
  "oggetto": "nome dell'oggetto",
+ "prodotto": {"tipo": "tipo di oggetto in italiano", "marca": "", "modello": ""},
  "riassunto": "1-2 frasi: cosa sta probabilmente succedendo",
  "codice_errore": {"codice": "", "significato": ""},
  "sicurezza": ["avvisi di sicurezza, il più importante per primo"],
@@ -140,6 +141,11 @@ Rispondi SOLO con JSON:
     problema,
     codice,
     oggetto: testo(d.oggetto, 100),
+    prodottoDedotto: {
+      tipo: testo((d.prodotto || {}).tipo || p.tipo, 60),
+      marca: testo((d.prodotto || {}).marca || p.marca, 60),
+      modello: testo((d.prodotto || {}).modello || p.modello, 60)
+    },
     riassunto: testo(d.riassunto, 500),
     codiceErrore: d.codice_errore && d.codice_errore.codice ? { codice: testo(d.codice_errore.codice, 40), significato: testo(d.codice_errore.significato, 400) } : null,
     sicurezza: lista(d.sicurezza, 6).map((x) => testo(x, 300)).filter(Boolean),

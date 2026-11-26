@@ -67,6 +67,10 @@ export async function chiediGemini(env, parti, { ricercaGoogle = false, json = f
     const dati = await r.json();
     const candidato = (dati.candidates || [])[0] || {};
     const testo = ((candidato.content || {}).parts || []).map((p) => p.text || '').join('');
+    // Risposta JSON rotta o tagliata: si riprova con il modello successivo
+    if (json && !ricercaGoogle) {
+      try { leggiJSON(testo); } catch { ultimoErrore = new Error('Risposta di Gemini incompleta: riprova'); continue; }
+    }
     const fonti = ((candidato.groundingMetadata || {}).groundingChunks || [])
       .map((c) => c.web).filter(Boolean).map((w) => ({ url: w.uri, titolo: w.title || '' }));
     return { testo, fonti, modello };
