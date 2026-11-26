@@ -1,5 +1,5 @@
 // Server di GLS Help (Cloudflare Worker).
-import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese, cercaDuckDuckGo, cercaBingHtml } from './fonti.js';
+import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese } from './fonti.js';
 
 const VERSIONE = '__VERSIONE__';
 
@@ -156,43 +156,6 @@ export default {
         ok: true, servizio: 'GLS Help', versione: VERSIONE,
         gemini: Boolean(env.GEMINI_API_KEY), youtube: Boolean(env.YOUTUBE_API_KEY)
       }, 200, origine);
-    }
-
-    // Diagnosi tecnica: quali modelli Gemini può usare la chiave (non mostra la chiave)
-    if (percorso === 'diagnosi/gemini') {
-      try {
-        const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': env.GEMINI_API_KEY || '' } });
-        const d = await r.json();
-        const modelli = (d.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent')).map((m) => m.name.replace('models/', ''));
-        const prova = {};
-        const daProvare = (url.searchParams.get('modelli') || `${env.GEMINI_MODELLO},gemini-3.8-flash,gemini-3.5-flash,gemini-3.5-flash-lite`).split(',').slice(0, 6);
-        for (const m of daProvare) {
-          for (const conRicerca of [false, true]) {
-            const corpo = { contents: [{ parts: [{ text: 'Rispondi solo: ok' }] }] };
-            if (conRicerca) corpo.tools = [{ google_search: {} }];
-            const t = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY || '' },
-              body: JSON.stringify(corpo)
-            });
-            const err = t.status === 200 ? null : ((await t.json().catch(() => ({}))).error || {});
-            prova[`${m}${conRicerca ? ' + ricerca Google' : ''}`] = t.status === 200 ? 'ok'
-              : `${t.status} ${(err.message || '').split('\n')[0].slice(0, 120)} ${JSON.stringify((err.details || []).filter((x) => /QuotaFailure/.test(x['@type'] || '')).map((x) => x.violations)).slice(0, 300)}`;
-          }
-        }
-        return rispondi({ stato: r.status, modelli, prova }, 200, null);
-      } catch (e) {
-        return rispondi({ errore: e.message }, 500, null);
-      }
-    }
-
-    // Diagnosi tecnica: cosa restituiscono i motori di ricerca dal server
-    if (percorso === 'diagnosi/web') {
-      const q = url.searchParams.get('q') || 'Samsung WW90T534DAW manuale pdf';
-      const esito = {};
-      for (const [nome, fn] of [['duckduckgo', cercaDuckDuckGo], ['bing', cercaBingHtml]]) {
-        try { esito[nome] = (await fn(q)).slice(0, 8).map((x) => x.url); } catch (e) { esito[nome] = 'errore: ' + e.message; }
-      }
-      return rispondi(esito, 200, null);
     }
 
     // Il calendario (.ics) verrà aperto dalle app calendario, senza Origin: fase 6

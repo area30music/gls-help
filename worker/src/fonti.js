@@ -31,35 +31,6 @@ function testoSemplice(html) {
 }
 
 // ---------- Ricerca sul web (gratuita) ----------
-export async function cercaDuckDuckGo(q) {
-  const r = await conTempo(fetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q), {
-    headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8' }
-  }));
-  if (!r.ok) throw new Error(`DuckDuckGo ha risposto ${r.status}`);
-  const html = await r.text();
-  const risultati = [];
-  const blocchi = html.split('class="result__a"').slice(1);
-  for (const b of blocchi) {
-    const href = (/href="([^"]+)"/.exec(b) || [])[1];
-    if (!href) continue;
-    let url = decodificaHtml(href);
-    if (url.startsWith('//')) url = 'https:' + url;
-    try {
-      const u = new URL(url);
-      if (u.hostname.endsWith('duckduckgo.com')) {
-        if (u.pathname.startsWith('/y.js')) continue; // pubblicità
-        const vero = u.searchParams.get('uddg');
-        if (vero) url = vero;
-      }
-    } catch { continue; }
-    const titolo = testoSemplice((/>([\s\S]*?)<\/a>/.exec(b) || [])[1]);
-    const estratto = testoSemplice((/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/.exec(b) || [])[1]);
-    risultati.push({ url, titolo, estratto });
-  }
-  if (!risultati.length) throw new Error(`DuckDuckGo: nessun risultato (${html.length} caratteri)`);
-  return risultati;
-}
-
 export async function cercaBingHtml(q) {
   const r = await conTempo(fetch('https://www.bing.com/search?setlang=it&cc=IT&q=' + encodeURIComponent(q), {
     headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8', Accept: 'text/html' }
