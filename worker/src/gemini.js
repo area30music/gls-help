@@ -37,7 +37,7 @@ export async function chiediGemini(env, parti, { ricercaGoogle = false, json = f
     if (restante < 4000) break;
     if (n === modelli.length) await new Promise((ok) => setTimeout(ok, 1500));
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), Math.min(restante, n < 2 ? 25000 : 15000));
+    const timer = setTimeout(() => ctrl.abort(), Math.min(restante, n === 0 ? 18000 : 15000));
     let r;
     try {
       r = await fetch(`${BASE}${modello}:generateContent`, {
