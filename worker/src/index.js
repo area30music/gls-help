@@ -1,5 +1,5 @@
 // Server di GLS Help (Cloudflare Worker).
-import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese, cercaWeb, cercaDuckDuckGo, cercaBing, cercaDuckDuckGoLite, cercaBingHtml } from './fonti.js';
+import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese, cercaDuckDuckGo, cercaBingHtml } from './fonti.js';
 
 const VERSIONE = '__VERSIONE__';
 
@@ -57,7 +57,7 @@ async function chiaveCache(dati) {
   const testo = JSON.stringify(dati).toLowerCase();
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(testo));
   const hex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  return new Request(`https://cache.gls-help.local/search/v1/${hex}`);
+  return new Request(`https://cache.gls-help.local/search/v2/${hex}`);
 }
 
 // ---------- search: manuali, guide iFixit e video da marca e modello ----------
@@ -185,7 +185,7 @@ export default {
     if (percorso === 'diagnosi/web') {
       const q = url.searchParams.get('q') || 'Samsung WW90T534DAW manuale pdf';
       const esito = {};
-      for (const [nome, fn] of [['duckduckgo', cercaDuckDuckGo], ['duckduckgo-lite', cercaDuckDuckGoLite], ['bing', cercaBingHtml], ['bing-rss', cercaBing]]) {
+      for (const [nome, fn] of [['duckduckgo', cercaDuckDuckGo], ['bing', cercaBingHtml]]) {
         try { esito[nome] = (await fn(q)).slice(0, 8).map((x) => x.url); } catch (e) { esito[nome] = 'errore: ' + e.message; }
       }
       return rispondi(esito, 200, null);

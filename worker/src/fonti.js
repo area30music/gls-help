@@ -1,4 +1,4 @@
-// Ricerca di manuali (Gemini + Google), guide iFixit e video YouTube.
+// Ricerca di manuali (archivi + Gemini + Bing, con controllo dei link), guide iFixit e video YouTube.
 import { chiediGemini, leggiJSON } from './gemini.js';
 
 const ATTESA_MS = 6000;
@@ -30,7 +30,7 @@ function testoSemplice(html) {
   return decodificaHtml(String(html || '').replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
 }
 
-// ---------- Ricerca sul web (gratuita): DuckDuckGo, con Bing come riserva ----------
+// ---------- Ricerca sul web (gratuita) ----------
 export async function cercaDuckDuckGo(q) {
   const r = await conTempo(fetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q), {
     headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8' }
@@ -60,38 +60,6 @@ export async function cercaDuckDuckGo(q) {
   return risultati;
 }
 
-export async function cercaBing(q) {
-  const r = await conTempo(fetch('https://www.bing.com/search?format=rss&setlang=it&q=' + encodeURIComponent(q), {
-    headers: { 'User-Agent': UA }
-  }));
-  if (!r.ok) throw new Error(`Bing ha risposto ${r.status}`);
-  const xml = await r.text();
-  return xml.split('<item>').slice(1).map((i) => ({
-    url: decodificaHtml((/<link>([\s\S]*?)<\/link>/.exec(i) || [])[1] || '').trim(),
-    titolo: testoSemplice((/<title>([\s\S]*?)<\/title>/.exec(i) || [])[1]),
-    estratto: testoSemplice((/<description>([\s\S]*?)<\/description>/.exec(i) || [])[1])
-  })).filter((x) => x.url);
-}
-
-export async function cercaDuckDuckGoLite(q) {
-  const r = await conTempo(fetch('https://lite.duckduckgo.com/lite/?q=' + encodeURIComponent(q), {
-    method: 'GET', headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8', Accept: 'text/html' }
-  }));
-  if (!r.ok) throw new Error(`DuckDuckGo lite ha risposto ${r.status}`);
-  const html = await r.text();
-  const risultati = [];
-  const re = /<a[^>]+href="([^"]+)"[^>]*class=['"]result-link['"][^>]*>([\s\S]*?)<\/a>/g;
-  let m;
-  while ((m = re.exec(html))) {
-    let url = decodificaHtml(m[1]);
-    if (url.startsWith('//')) url = 'https:' + url;
-    try { const u = new URL(url); if (u.hostname.endsWith('duckduckgo.com')) { const v = u.searchParams.get('uddg'); if (!v) continue; url = v; } } catch { continue; }
-    risultati.push({ url, titolo: testoSemplice(m[2]), estratto: '' });
-  }
-  if (!risultati.length) throw new Error(`DuckDuckGo lite: nessun risultato (${html.length} caratteri)`);
-  return risultati;
-}
-
 export async function cercaBingHtml(q) {
   const r = await conTempo(fetch('https://www.bing.com/search?setlang=it&cc=IT&q=' + encodeURIComponent(q), {
     headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8', Accept: 'text/html' }
@@ -118,84 +86,106 @@ export async function cercaBingHtml(q) {
   return risultati;
 }
 
-export async function cercaWeb(q) {
-  let risultati = [];
-  try { risultati = await cercaDuckDuckGo(q); } catch { /* si prova Bing */ }
-  if (risultati.length < 3) {
-    try { risultati = risultati.concat(await cercaBing(q)); } catch { /* niente */ }
-  }
-  const visti = new Set();
-  return risultati
-    .map((x) => ({ ...x, url: soloHttps(x.url) }))
-    .filter((x) => x.url && !visti.has(x.url) && visti.add(x.url))
-    .slice(0, 15);
-}
-
 const fonte = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
-const ARCHIVI = /manualslib|manua\.ls|manuals\.|manualzz|manualsonline|libretto|istruzioni|bedienungsanleitu|usermanual|manualeduso|safe-manuals|device\.report/i;
-
-// Scelta senza Gemini: risultati che sembrano manuali
-function sceltaSemplice(risultati, { marca, modello }) {
-  const m = String(modello || '').toLowerCase().replace(/\s+/g, '');
-  const b = String(marca || '').toLowerCase();
-  return risultati.filter((x) => {
-    const t = (x.titolo + ' ' + x.url).toLowerCase();
-    const pertinente = !m || t.replace(/\s+/g, '').includes(m.slice(0, 6));
-    return pertinente && (/manual|istruzion|libretto|guida|\.pdf/.test(t) || (b && fonte(x.url).includes(b)) || ARCHIVI.test(x.url));
-  }).slice(0, 6).map((x) => ({
-    titolo: x.titolo.slice(0, 140) || 'Manuale', url: x.url, lingua: '', genere: 'utente',
-    fonte: fonte(x.url), pdf: /\.pdf(\?|$)/i.test(x.url)
-  }));
-}
 
 // ---------- Manuali ----------
-export async function cercaManuali(env, { testo, marca, modello, tipo }) {
-  const base = [marca, modello].filter(Boolean).join(' ') || testo;
-  const risultati = await cercaWeb(`${base} ${tipo || ''} manuale istruzioni pdf`.replace(/\s+/g, ' '));
+const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const compatto = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+// La pagina esiste davvero e parla di quel modello?
+async function paginaValida(url, modello, { senzaRedirect = false } = {}) {
+  try {
+    const r = await conTempo(fetch(url, {
+      redirect: senzaRedirect ? 'manual' : 'follow',
+      headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8' }
+    }), 6000);
+    if (r.status !== 200) { try { await r.body?.cancel(); } catch { /* */ } return false; }
+    const tipo = r.headers.get('Content-Type') || '';
+    if (/pdf/i.test(tipo)) { try { await r.body?.cancel(); } catch { /* */ } return true; }
+    const pezzo = compatto(modello).slice(0, 7);
+    if (!pezzo) { try { await r.body?.cancel(); } catch { /* */ } return true; }
+    const html = (await r.text()).slice(0, 400000);
+    return compatto(html).includes(pezzo);
+  } catch { return false; }
+}
+
+// Archivi di manuali con indirizzi prevedibili (se il modello non c'è, rispondono con un reindirizzamento)
+function indirizziArchivi(marca, modello) {
+  const m = slug(marca); const mo = slug(modello);
+  if (!m || !mo) return [];
+  return [
+    { titolo: "Manuale d'uso in italiano", url: `https://www.manualeitaliano.it/${m}/${mo}/manuale`, lingua: 'it', genere: 'utente' },
+    { titolo: "Manuale d'uso (archivio internazionale)", url: `https://www.manua.ls/${m}/${mo}/manual`, lingua: 'en', genere: 'utente' }
+  ];
+}
+
+export async function cercaManuali(env, { testo, marca, modello, tipo }) {
   const descrizione = [marca && `Marca: ${marca}`, modello && `Modello: ${modello}`, tipo && `Tipo di oggetto: ${tipo}`, testo && `Richiesta: ${testo}`]
     .filter(Boolean).join('\n');
-  const elenco = risultati.map((x, i) => `[${i + 1}] ${x.titolo}\n${x.url}\n${x.estratto}`).join('\n\n');
 
+  // 1. Gemini riconosce il prodotto e propone le pagine ufficiali di supporto
   const prompt = `Sei l'assistente di GLS Help, un'app italiana per riparare oggetti di casa.
-Prodotto cercato:
+Prodotto:
 ${descrizione}
 
-Risultati di una ricerca sul web:
-${elenco || '(nessun risultato)'}
-
-Compiti:
-1. Riconosci il prodotto: marca, modello, tipo di oggetto in italiano (es. "lavatrice") e nome completo.
-2. Scegli dai risultati SOLO le pagine che contengono davvero un manuale, un libretto di istruzioni o la pagina di supporto/download di QUESTO prodotto (o di un modello quasi identico). Escludi negozi, recensioni, pubblicità e prodotti diversi. Prima il sito ufficiale del produttore, poi gli archivi di manuali. Massimo 6, i più utili per primi.
+1. Riconosci il prodotto: marca, modello esatto (codice), tipo di oggetto in italiano (es. "lavatrice") e nome completo.
+2. Proponi fino a 4 indirizzi web dove con buona probabilità si trovano il manuale o la pagina di supporto/download di QUESTO modello, preferendo il sito ufficiale italiano del produttore (es. pagine "support" o "download manuali"). Usa solo schemi di indirizzo reali che conosci bene: verranno controllati uno per uno.
 3. Scrivi 2-5 parole in inglese per cercare guide di riparazione (es. "Samsung WW90 washing machine").
 
 Rispondi SOLO con JSON:
-{"prodotto":{"marca":"","modello":"","tipo":"","nome":""},"ricerca_inglese":"","scelti":[{"n":1,"titolo":"titolo breve in italiano","lingua":"it","genere":"utente"}]}
-"genere" è uno tra: utente, installazione, servizio, ricambi, supporto. "lingua" è il codice della lingua del documento se si capisce, altrimenti "".`;
+{"prodotto":{"marca":"","modello":"","tipo":"","nome":""},"ricerca_inglese":"","pagine":[{"titolo":"titolo breve in italiano","url":"https://...","lingua":"it","genere":"supporto"}]}
+"genere" è uno tra: utente, installazione, servizio, ricambi, supporto.`;
 
-  let dati = null;
+  let dati = {};
+  let avviso = '';
   try {
-    const risposta = await chiediGemini(env, prompt, { json: true });
-    dati = leggiJSON(risposta.testo);
-  } catch (e) {
-    // Gemini non disponibile: scelta automatica più semplice
-    return { prodotto: {}, ricercaInglese: '', manuali: sceltaSemplice(risultati, { marca, modello }), avviso: e.message };
+    dati = leggiJSON((await chiediGemini(env, prompt, { json: true })).testo) || {};
+  } catch (e) { avviso = e.message; }
+
+  const prodotto = dati.prodotto || {};
+  const marcaOk = marca || prodotto.marca || '';
+  const modelloOk = modello || prodotto.modello || '';
+
+  // 2. Candidati: archivi, pagine proposte da Gemini, risultati di Bing con il codice del modello
+  const candidati = [];
+  for (const a of indirizziArchivi(marcaOk, modelloOk)) candidati.push({ ...a, senzaRedirect: true });
+  for (const p of (Array.isArray(dati.pagine) ? dati.pagine : []).slice(0, 4)) {
+    const url = soloHttps(p.url);
+    if (url) candidati.push({ titolo: p.titolo || 'Pagina di supporto', url, lingua: p.lingua || '', genere: p.genere || 'supporto' });
+  }
+  if (modelloOk) {
+    try {
+      const pezzo = compatto(modelloOk).slice(0, 7);
+      const web = await cercaBingHtml(`${marcaOk} ${modelloOk} manuale pdf`).catch(() => []);
+      for (const w of web.filter((x) => compatto(x.titolo + x.url).includes(pezzo)).slice(0, 4)) {
+        candidati.push({ titolo: w.titolo || 'Manuale', url: soloHttps(w.url), lingua: '', genere: 'utente' });
+      }
+    } catch { /* facoltativo */ }
   }
 
-  const scelti = (Array.isArray(dati.scelti) ? dati.scelti : [])
-    .map((s) => ({ s, r: risultati[Number(s.n) - 1] }))
-    .filter((x) => x.r)
-    .slice(0, 6)
-    .map(({ s, r }) => ({
-      titolo: String(s.titolo || r.titolo || 'Manuale').slice(0, 140),
-      url: r.url,
-      lingua: String(s.lingua || '').slice(0, 5),
-      genere: String(s.genere || '').slice(0, 30),
-      fonte: fonte(r.url),
-      pdf: /\.pdf(\?|$)/i.test(r.url)
-    }));
+  // 3. Si tengono solo le pagine che esistono davvero
+  const visti = new Set();
+  const unici = candidati.filter((c) => {
+    if (!c.url) return false;
+    const k = c.url.replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase();
+    return !visti.has(k) && visti.add(k);
+  }).slice(0, 10);
+  const controllati = await Promise.all(unici.map(async (c) => ((await paginaValida(c.url, modelloOk, c)) ? c : null)));
 
-  return { prodotto: dati.prodotto || {}, ricercaInglese: dati.ricerca_inglese || '', manuali: scelti };
+  return {
+    prodotto,
+    ricercaInglese: dati.ricerca_inglese || '',
+    avviso,
+    manuali: controllati.filter(Boolean).slice(0, 6).map((m) => ({
+      titolo: String(m.titolo).slice(0, 140),
+      url: m.url,
+      lingua: String(m.lingua || '').slice(0, 5),
+      genere: String(m.genere || '').slice(0, 30),
+      fonte: fonte(m.url),
+      pdf: /\.pdf(\?|$)/i.test(m.url)
+    }))
+  };
 }
 
 // ---------- iFixit ----------
