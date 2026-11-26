@@ -79,7 +79,7 @@ export async function cercaTavily(env, query, { max = 8 } = {}) {
   if (!r.ok) throw new Error(`Tavily ha risposto ${r.status}`);
   const d = await r.json();
   return (d.results || []).map((x) => ({ url: soloHttps(x.url), titolo: testoSemplice(x.title), estratto: testoSemplice(x.content).slice(0, 300) }))
-    .filter((x) => x.url);
+    .filter((x) => x.url && !/(^|\.)tavily\.com\//.test(x.url.replace(/^https:\/\//, '')));
 }
 
 // ---------- Manuali ----------
