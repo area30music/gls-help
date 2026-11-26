@@ -319,7 +319,7 @@
     imposta('info-offline', navigator.serviceWorker && navigator.serviceWorker.controller ? 'Sì' : 'Non ancora');
 
     const pallino = (ok, testo) => `<span class="pallino ${ok ? 'ok' : 'ko'}"></span>${testo}`;
-    if (GLS.worker.includes('WORKERS_SUBDOMAIN')) {
+    if (!GLS.worker) {
       imposta('info-server', pallino(false, 'non configurato'));
       return;
     }

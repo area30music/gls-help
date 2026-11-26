@@ -2,5 +2,5 @@
 window.GLS = {
   versione: '__VERSIONE__',
   // Indirizzo del server (Cloudflare Worker)
-  worker: 'https://gls-help.WORKERS_SUBDOMAIN.workers.dev'
+  worker: 'https://gls-help.info-area30.workers.dev'
 };
