@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>GLS Help</title>
+  <meta name="description" content="GLS Help: ripara gli oggetti di casa, segui guide fai da te e tieni sotto controllo la manutenzione.">
+  <meta name="theme-color" content="#F7F6F4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="GLS Help">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <main id="vista" tabindex="-1"></main>
+
+  <div id="aggiorna" class="aggiorna" role="status" hidden>
+    <span>Nuova versione disponibile</span>
+    <button type="button" class="btn btn-accento" id="aggiorna-btn">Aggiorna</button>
+  </div>
+
+  <div id="avviso" class="avviso" role="status" aria-live="polite" hidden></div>
+
+  <nav class="menu" aria-label="Menu principale">
+    <a href="#/" data-voce="home">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="#/preferiti" data-voce="preferiti">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>
+      <span>Preferiti</span>
+    </a>
+    <a href="#/backup" data-voce="backup">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-9 6 6 0 0 1 11.4 1.4A3.8 3.8 0 0 1 17.5 18"/><path d="M12 12v8"/><path d="m9 17 3 3 3-3"/></svg>
+      <span>Backup</span>
+    </a>
+  </nav>
+
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

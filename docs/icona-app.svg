@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="1024" height="1024">
+  <!-- Icona dell'app a tutto quadrato: il telefono arrotonda gli angoli da solo -->
+  <rect width="160" height="160" fill="#FDE8D3"/>
+  <g transform="translate(80 80) scale(0.78) translate(-80 -80)">
+    <path transform="translate(110 48) rotate(-45) scale(0.85)" d="M0 -4L37.75 -4A11 11 0 0 1 58.25 -4L50 -4L50 4L58.25 4A11 11 0 0 1 37.75 4L0 4A4 4 0 0 1 0 -4Z" fill="#F28C28"/>
+    <text x="80" y="102" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="52" font-weight="700" fill="#1F1F1F">GLS</text>
+    <text x="80" y="134" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="600" letter-spacing="5" fill="#1F1F1F">HELP</text>
+  </g>
+</svg>

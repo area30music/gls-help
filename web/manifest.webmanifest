@@ -1,0 +1,25 @@
+{
+  "name": "GLS Help",
+  "short_name": "GLS Help",
+  "description": "Ripara gli oggetti di casa, guide fai da te e manutenzione.",
+  "lang": "it",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F6F4",
+  "theme_color": "#F28C28",
+  "categories": ["utilities", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Ho un guasto", "url": "./#/guasto", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Come si fa", "url": "./#/come-si-fa", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "I miei oggetti", "url": "./#/oggetti", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
