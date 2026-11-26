@@ -7,6 +7,6 @@ workers_dev = true
 
 [vars]
 # Modello di Gemini (se sparisce, il server prova da solo le alternative)
-GEMINI_MODELLO = "gemini-flash-latest"
+GEMINI_MODELLO = "gemini-3.5-flash-lite"
 # Siti autorizzati a usare il server, separati da virgola
 ORIGINI_AMMESSE = "https://area30music.github.io,http://localhost:8010,http://127.0.0.1:8010"

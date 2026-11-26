@@ -24,89 +24,132 @@ function soloHttps(url) {
   } catch { return null; }
 }
 
-// I link delle fonti di Google passano da un indirizzo di reindirizzamento: lo risolviamo
-async function risolviReindirizzamento(url) {
-  if (!/vertexaisearch\.cloud\.google\.com\/grounding-api-redirect/.test(url)) return url;
-  try {
-    const r = await conTempo(fetch(url, { method: 'HEAD', redirect: 'manual' }), 4000);
-    return r.headers.get('Location') || null;
-  } catch { return null; }
+const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+
+function testoSemplice(html) {
+  return decodificaHtml(String(html || '').replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
 }
 
-// Scarta i link che non esistono (404) o non rispondono
-async function linkValido(url) {
-  try {
-    const r = await conTempo(fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
-      headers: { Range: 'bytes=0-0', 'User-Agent': 'Mozilla/5.0 (compatible; GLSHelp/1.0)' }
-    }), 5000);
-    try { await r.body?.cancel(); } catch { /* niente */ }
-    return ![404, 410].includes(r.status) && r.status < 500;
-  } catch { return false; }
+// ---------- Ricerca sul web (gratuita): DuckDuckGo, con Bing come riserva ----------
+async function cercaDuckDuckGo(q) {
+  const r = await conTempo(fetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q), {
+    headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8' }
+  }));
+  if (!r.ok) throw new Error(`DuckDuckGo ha risposto ${r.status}`);
+  const html = await r.text();
+  const risultati = [];
+  const blocchi = html.split('class="result__a"').slice(1);
+  for (const b of blocchi) {
+    const href = (/href="([^"]+)"/.exec(b) || [])[1];
+    if (!href) continue;
+    let url = decodificaHtml(href);
+    if (url.startsWith('//')) url = 'https:' + url;
+    try {
+      const u = new URL(url);
+      if (u.hostname.endsWith('duckduckgo.com')) {
+        if (u.pathname.startsWith('/y.js')) continue; // pubblicità
+        const vero = u.searchParams.get('uddg');
+        if (vero) url = vero;
+      }
+    } catch { continue; }
+    const titolo = testoSemplice((/>([\s\S]*?)<\/a>/.exec(b) || [])[1]);
+    const estratto = testoSemplice((/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/.exec(b) || [])[1]);
+    risultati.push({ url, titolo, estratto });
+  }
+  return risultati;
+}
+
+async function cercaBing(q) {
+  const r = await conTempo(fetch('https://www.bing.com/search?format=rss&setlang=it&q=' + encodeURIComponent(q), {
+    headers: { 'User-Agent': UA }
+  }));
+  if (!r.ok) throw new Error(`Bing ha risposto ${r.status}`);
+  const xml = await r.text();
+  return xml.split('<item>').slice(1).map((i) => ({
+    url: decodificaHtml((/<link>([\s\S]*?)<\/link>/.exec(i) || [])[1] || '').trim(),
+    titolo: testoSemplice((/<title>([\s\S]*?)<\/title>/.exec(i) || [])[1]),
+    estratto: testoSemplice((/<description>([\s\S]*?)<\/description>/.exec(i) || [])[1])
+  })).filter((x) => x.url);
+}
+
+export async function cercaWeb(q) {
+  let risultati = [];
+  try { risultati = await cercaDuckDuckGo(q); } catch { /* si prova Bing */ }
+  if (risultati.length < 3) {
+    try { risultati = risultati.concat(await cercaBing(q)); } catch { /* niente */ }
+  }
+  const visti = new Set();
+  return risultati
+    .map((x) => ({ ...x, url: soloHttps(x.url) }))
+    .filter((x) => x.url && !visti.has(x.url) && visti.add(x.url))
+    .slice(0, 15);
+}
+
+const fonte = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+const ARCHIVI = /manualslib|manua\.ls|manuals\.|manualzz|manualsonline|libretto|istruzioni|bedienungsanleitu|usermanual|manualeduso|safe-manuals|device\.report/i;
+
+// Scelta senza Gemini: risultati che sembrano manuali
+function sceltaSemplice(risultati, { marca, modello }) {
+  const m = String(modello || '').toLowerCase().replace(/\s+/g, '');
+  const b = String(marca || '').toLowerCase();
+  return risultati.filter((x) => {
+    const t = (x.titolo + ' ' + x.url).toLowerCase();
+    const pertinente = !m || t.replace(/\s+/g, '').includes(m.slice(0, 6));
+    return pertinente && (/manual|istruzion|libretto|guida|\.pdf/.test(t) || (b && fonte(x.url).includes(b)) || ARCHIVI.test(x.url));
+  }).slice(0, 6).map((x) => ({
+    titolo: x.titolo.slice(0, 140) || 'Manuale', url: x.url, lingua: '', genere: 'utente',
+    fonte: fonte(x.url), pdf: /\.pdf(\?|$)/i.test(x.url)
+  }));
 }
 
 // ---------- Manuali ----------
 export async function cercaManuali(env, { testo, marca, modello, tipo }) {
+  const base = [marca, modello].filter(Boolean).join(' ') || testo;
+  const risultati = await cercaWeb(`${base} ${tipo || ''} manuale istruzioni pdf`.replace(/\s+/g, ' '));
+
   const descrizione = [marca && `Marca: ${marca}`, modello && `Modello: ${modello}`, tipo && `Tipo di oggetto: ${tipo}`, testo && `Richiesta: ${testo}`]
     .filter(Boolean).join('\n');
+  const elenco = risultati.map((x, i) => `[${i + 1}] ${x.titolo}\n${x.url}\n${x.estratto}`).join('\n\n');
 
   const prompt = `Sei l'assistente di GLS Help, un'app italiana per riparare oggetti di casa.
-Usa la ricerca Google per trovare i manuali ufficiali di questo prodotto:
+Prodotto cercato:
 ${descrizione}
 
-Cerca prima sul sito ufficiale del produttore, poi su archivi affidabili di manuali (es. ManualsLib, manualzz).
-Preferisci i PDF e i manuali in italiano; se non esistono, va bene l'inglese.
-Usa SOLO indirizzi che hai visto nei risultati di ricerca: non inventare link.
+Risultati di una ricerca sul web:
+${elenco || '(nessun risultato)'}
 
-Rispondi SOLO con un oggetto JSON, senza altro testo, con questa forma:
-{
-  "prodotto": { "marca": "", "modello": "", "tipo": "", "nome": "" },
-  "ricerca_inglese": "",
-  "manuali": [
-    { "titolo": "", "url": "", "lingua": "it", "genere": "utente", "fonte": "", "pdf": true }
-  ]
-}
-- "prodotto": marca, modello e tipo di oggetto in italiano (es. "lavatrice"); "nome" è il nome completo leggibile.
-- "ricerca_inglese": 2-5 parole in inglese per cercare guide di riparazione (es. "Samsung WW90 washing machine").
-- "genere": uno tra "utente", "installazione", "servizio", "ricambi", "scheda tecnica".
-- "titolo" in italiano, breve. Massimo 6 manuali, i più utili per primi.`;
+Compiti:
+1. Riconosci il prodotto: marca, modello, tipo di oggetto in italiano (es. "lavatrice") e nome completo.
+2. Scegli dai risultati SOLO le pagine che contengono davvero un manuale, un libretto di istruzioni o la pagina di supporto/download di QUESTO prodotto (o di un modello quasi identico). Escludi negozi, recensioni, pubblicità e prodotti diversi. Prima il sito ufficiale del produttore, poi gli archivi di manuali. Massimo 6, i più utili per primi.
+3. Scrivi 2-5 parole in inglese per cercare guide di riparazione (es. "Samsung WW90 washing machine").
 
-  const risposta = await chiediGemini(env, prompt, { ricercaGoogle: true });
-  let dati;
-  try { dati = leggiJSON(risposta.testo); } catch { dati = { manuali: [] }; }
+Rispondi SOLO con JSON:
+{"prodotto":{"marca":"","modello":"","tipo":"","nome":""},"ricerca_inglese":"","scelti":[{"n":1,"titolo":"titolo breve in italiano","lingua":"it","genere":"utente"}]}
+"genere" è uno tra: utente, installazione, servizio, ricambi, supporto. "lingua" è il codice della lingua del documento se si capisce, altrimenti "".`;
 
-  // Link proposti da Gemini, poi (se servono) le fonti trovate da Google
-  let candidati = (Array.isArray(dati.manuali) ? dati.manuali : []).slice(0, 8);
-  candidati = await Promise.all(candidati.map(async (m) => ({ ...m, url: soloHttps(await risolviReindirizzamento(m.url || '')) })));
-  candidati = candidati.filter((m) => m.url);
-
-  if (candidati.length < 2 && risposta.fonti.length) {
-    const extra = await Promise.all(risposta.fonti.slice(0, 5).map(async (f) => {
-      const url = soloHttps(await risolviReindirizzamento(f.url));
-      return url && { titolo: f.titolo || 'Documento trovato', url, lingua: '', genere: 'utente', fonte: f.titolo || '', pdf: /\.pdf(\?|$)/i.test(url) };
-    }));
-    candidati.push(...extra.filter(Boolean));
+  let dati = null;
+  try {
+    const risposta = await chiediGemini(env, prompt, { json: true });
+    dati = leggiJSON(risposta.testo);
+  } catch (e) {
+    // Gemini non disponibile: scelta automatica più semplice
+    return { prodotto: {}, ricercaInglese: '', manuali: sceltaSemplice(risultati, { marca, modello }), avviso: e.message };
   }
 
-  // Niente doppioni e solo link che esistono
-  const visti = new Set();
-  candidati = candidati.filter((m) => !visti.has(m.url) && visti.add(m.url));
-  const validi = await Promise.all(candidati.map(async (m) => ((await linkValido(m.url)) ? m : null)));
+  const scelti = (Array.isArray(dati.scelti) ? dati.scelti : [])
+    .map((s) => ({ s, r: risultati[Number(s.n) - 1] }))
+    .filter((x) => x.r)
+    .slice(0, 6)
+    .map(({ s, r }) => ({
+      titolo: String(s.titolo || r.titolo || 'Manuale').slice(0, 140),
+      url: r.url,
+      lingua: String(s.lingua || '').slice(0, 5),
+      genere: String(s.genere || '').slice(0, 30),
+      fonte: fonte(r.url),
+      pdf: /\.pdf(\?|$)/i.test(r.url)
+    }));
 
-  const fonte = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
-  return {
-    prodotto: dati.prodotto || {},
-    ricercaInglese: dati.ricerca_inglese || '',
-    manuali: validi.filter(Boolean).slice(0, 6).map((m) => ({
-      titolo: String(m.titolo || 'Manuale').slice(0, 140),
-      url: m.url,
-      lingua: String(m.lingua || '').slice(0, 5),
-      genere: String(m.genere || '').slice(0, 30),
-      fonte: fonte(m.url),
-      pdf: Boolean(m.pdf) || /\.pdf(\?|$)/i.test(m.url)
-    }))
-  };
+  return { prodotto: dati.prodotto || {}, ricercaInglese: dati.ricerca_inglese || '', manuali: scelti };
 }
 
 // ---------- iFixit ----------
