@@ -32,6 +32,7 @@
     esporta: '<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
     importa: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
     piu: '<path d="M12 5v14M5 12h14"/>',
+    ingranaggio: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     persona: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     casa: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
     casco: '<path d="M3 18.5h18"/><path d="M4.5 18.5V16a7.5 7.5 0 0 1 15 0v2.5"/><path d="M9.5 9V5.5h5V9"/>'
@@ -82,6 +83,17 @@
   }
 
   // ---------- Pagine ----------
+  function sceltaProfili() {
+    return `
+      <div class="elenco-card">
+        ${Object.entries(PROFILI).map(([id, pr]) => `
+          <button type="button" class="card${GLS.profilo === id ? ' scelto' : ''}" data-profilo="${id}" aria-pressed="${GLS.profilo === id}">
+            <span class="icona">${svg(pr.icona)}</span>
+            <span class="testo"><span class="tit">${pr.nome}${GLS.profilo === id ? ' <span class="etichetta">Attivo</span>' : ''}</span><span class="sotto">${esc(pr.testo)}</span></span>
+          </button>`).join('')}
+      </div>`;
+  }
+
   const pagine = {
     profilo: {
       titolo: 'Come vuoi usarla?',
@@ -90,17 +102,10 @@
           <img src="favicon.svg" alt="Logo GLS Help: le lettere GLS con una chiave inglese, in un riquadro arancione" width="56" height="56">
           <div>
             <h1>Come vuoi usarla?</h1>
-            <p>Potrai cambiare in ogni momento da Backup.</p>
+            <p>Potrai cambiarlo quando vuoi dalle Impostazioni.</p>
           </div>
         </header>
-        <div class="elenco-card">
-          ${Object.entries(PROFILI).map(([id, pr]) => `
-            <button type="button" class="card${GLS.profilo === id ? ' scelto' : ''}" data-profilo="${id}" style="width:100%;text-align:left;font:inherit"${GLS.profilo === id ? ' aria-pressed="true"' : ''}>
-              <span class="icona">${svg(pr.icona)}</span>
-              <span class="testo"><span class="tit">${pr.nome}</span><span class="sotto">${esc(pr.testo)}</span></span>
-              ${svg('freccia').replace('<svg', '<svg class="freccia"')}
-            </button>`).join('')}
-        </div>`
+        ${sceltaProfili()}`
     },
 
     home: {
@@ -112,6 +117,7 @@
             <h1>GLS Help</h1>
             <p>Cosa sistemiamo oggi?</p>
           </div>
+          <a class="ingranaggio" href="#/impostazioni" aria-label="Impostazioni">${svg('ingranaggio')}</a>
         </header>
 
         ${barraRicerca('Cerca un oggetto o un problema…', 'Cerca in GLS Help')}
@@ -203,12 +209,20 @@
         </div>
         <p class="nota">Un unico file con tutti i tuoi dati e le foto, da salvare su iCloud, Google Drive o NAS.</p>
 
-        <h2 class="titoletto">Impostazioni</h2>
-        <a class="card" href="#/profilo">
-          <span class="icona">${svg(PROFILI[GLS.profilo] ? PROFILI[GLS.profilo].icona : 'persona')}</span>
-          <span class="testo"><span class="tit">Profilo: ${PROFILI[GLS.profilo] ? PROFILI[GLS.profilo].nome : '—'}</span><span class="sotto">Tocca per cambiare</span></span>
+        <h2 class="titoletto">Altro</h2>
+        <a class="card" href="#/impostazioni">
+          <span class="icona">${svg('ingranaggio')}</span>
+          <span class="testo"><span class="tit">Impostazioni</span><span class="sotto">Profilo, versione e installazione</span></span>
           ${svg('freccia').replace('<svg', '<svg class="freccia"')}
-        </a>
+        </a>`
+    },
+
+    impostazioni: {
+      titolo: 'Impostazioni',
+      html: () => `
+        ${testataSezione('Impostazioni')}
+        <h2 class="titoletto" style="margin-top:4px">Come vuoi usarla?</h2>
+        ${sceltaProfili()}
 
         <h2 class="titoletto">Informazioni</h2>
         <dl class="info">
@@ -216,6 +230,7 @@
           <div><dt>Installata sulla Home</dt><dd id="info-installata"></dd></div>
           <div><dt>Funziona senza internet</dt><dd id="info-offline"></dd></div>
           <div><dt>Server</dt><dd id="info-server"><span class="pallino"></span>controllo…</dd></div>
+          <div><dt>Schermo</dt><dd id="info-schermo"></dd></div>
         </dl>
 
         <h2 class="titoletto">Installa l'app</h2>
@@ -243,7 +258,7 @@
     vista.innerHTML = pagina.html();
     document.title = nome === 'home' ? 'GLS Help' : `${pagina.titolo} – GLS Help`;
 
-    const voce = nome === 'preferiti' || nome === 'backup' ? nome : 'home';
+    const voce = nome === 'preferiti' || nome === 'backup' ? nome : nome === 'impostazioni' ? '' : 'home';
     document.querySelector('.menu').hidden = !GLS.profilo;
     document.querySelectorAll('.menu a').forEach((a) => {
       if (a.dataset.voce === voce) a.setAttribute('aria-current', 'page');
@@ -251,14 +266,37 @@
     });
 
     if (!primaVolta) {
-      window.scrollTo(0, 0);
+      document.getElementById('contenitore').scrollTop = 0;
       vista.focus({ preventScroll: true });
     }
     primaVolta = false;
     if (pagina.dopo) pagina.dopo();
   }
 
+  function vai(indirizzo) {
+    if (location.hash === indirizzo) { mostra(); return; }
+    history.pushState(null, '', indirizzo);
+    mostra();
+  }
   window.addEventListener('hashchange', mostra);
+  window.addEventListener('popstate', mostra);
+
+  // Tutti i link interni (#/...) aprono la pagina subito, senza ricaricare
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a[href^="#/"]');
+    if (!link || e.defaultPrevented) return;
+    e.preventDefault();
+    vai(link.getAttribute('href'));
+  });
+
+  // Altezza reale dello schermo (iPhone installato sulla Home)
+  function misuraSchermo() {
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--altezza', Math.round(h) + 'px');
+  }
+  misuraSchermo();
+  window.addEventListener('resize', misuraSchermo);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', misuraSchermo);
 
   // ---------- Avvisi brevi ----------
   const avviso = document.getElementById('avviso');
@@ -276,11 +314,12 @@
     if (scelta) {
       const id = scelta.dataset.profilo;
       try { await DB.salva('impostazioni', { id: 'profilo', valore: id }); } catch (err) { console.warn(err); }
+      const primoAvvio = !GLS.profilo;
       applicaProfilo(id);
       mostraAvviso(`Profilo ${PROFILI[id].nome} attivato.`);
-      // Torna alla Home (se ci sei già, ridisegna la pagina)
-      if (location.hash === '#/' || location.hash === '') mostra();
-      else location.hash = '#/';
+      // Al primo avvio va alla Home; dalle Impostazioni resta lì
+      if (primoAvvio) vai('#/');
+      else mostra();
       return;
     }
     const presto = e.target.closest('[data-presto]');
@@ -323,6 +362,8 @@
     imposta('info-versione', esc(v));
     const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
     imposta('info-installata', standalone ? 'Sì' : 'No');
+    const vv = window.visualViewport;
+    imposta('info-schermo', `${Math.round(vv ? vv.height : innerHeight)} / ${innerHeight} / ${screen.height}`);
     imposta('info-offline', navigator.serviceWorker && navigator.serviceWorker.controller ? 'Sì' : 'Non ancora');
 
     const pallino = (ok, testo) => `<span class="pallino ${ok ? 'ok' : 'ko'}"></span>${testo}`;
