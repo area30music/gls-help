@@ -399,8 +399,8 @@
     const domanda = { testo: p.get('testo') || '', marca: p.get('marca') || '', modello: p.get('modello') || '', tipo: p.get('tipo') || '' };
     const box = document.getElementById('risultati');
     const id = chiaveRicerca(domanda);
-    let salvata = null;
-    try { salvata = await DB.leggi('ricerche', id); } catch { /* niente */ }
+    // L'archivio si legge in parallelo: la ricerca parte subito
+    const salvataP = DB.leggi('ricerche', id).catch(() => null);
 
     try {
       const ctrl = new AbortController();
@@ -418,6 +418,7 @@
       if (document.getElementById('risultati') === box) disegnaRisultati(box, dati);
     } catch (err) {
       if (document.getElementById('risultati') !== box) return;
+      const salvata = await salvataP;
       if (salvata) {
         disegnaRisultati(box, salvata.risultato);
         mostraAvviso('Senza connessione: ti mostro i risultati salvati.');

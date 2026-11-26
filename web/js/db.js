@@ -19,8 +19,18 @@
           }
         }
       };
-      req.onsuccess = () => ok(req.result);
-      req.onerror = () => ko(req.error);
+      let fatto = false;
+      req.onsuccess = () => {
+        fatto = true;
+        const db = req.result;
+        // Se un'altra copia dell'app aggiorna l'archivio, questa lo libera subito
+        db.onversionchange = () => { db.close(); aperto = null; };
+        ok(db);
+      };
+      req.onerror = () => { fatto = true; aperto = null; ko(req.error); };
+      req.onblocked = () => console.warn('Archivio bloccato da un\'altra copia aperta dell\'app');
+      // Mai restare in attesa per sempre
+      setTimeout(() => { if (!fatto) { aperto = null; ko(new Error('Archivio del telefono non disponibile')); } }, 4000);
     });
     return aperto;
   }
