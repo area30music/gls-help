@@ -154,6 +154,26 @@ export default {
       }, 200, origine);
     }
 
+    // Diagnosi tecnica: quali modelli Gemini può usare la chiave (non mostra la chiave)
+    if (percorso === 'diagnosi/gemini') {
+      try {
+        const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': env.GEMINI_API_KEY || '' } });
+        const d = await r.json();
+        const modelli = (d.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent')).map((m) => m.name.replace('models/', ''));
+        const prova = {};
+        for (const m of [env.GEMINI_MODELLO, ...modelli.filter((x) => /flash/.test(x) && !/image|tts|audio|live|embedding/.test(x)).slice(0, 6)].filter(Boolean)) {
+          const t = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY || '' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: 'Rispondi solo: ok' }] }], tools: [{ google_search: {} }] })
+          });
+          prova[m] = t.status === 200 ? 'ok' : `${t.status} ${(((await t.json().catch(() => ({}))).error || {}).message || '').split('\n')[0].slice(0, 160)}`;
+        }
+        return rispondi({ stato: r.status, modelli, prova }, 200, null);
+      } catch (e) {
+        return rispondi({ errore: e.message }, 500, null);
+      }
+    }
+
     // Il calendario (.ics) verrà aperto dalle app calendario, senza Origin: fase 6
     if (percorso.startsWith('calendar/')) {
       return rispondi({ ok: false, errore: 'Calendario in arrivo nella fase 6' }, 501, null);
