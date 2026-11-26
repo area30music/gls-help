@@ -184,6 +184,7 @@ Massimo 6, solo indirizzi visti nei risultati.`, { ricercaGoogle: true });
     prodotto,
     ricercaInglese: dati.ricerca_inglese || '',
     avviso,
+    controllati: unici.map((c, n) => ({ url: c.url, ok: Boolean(controllati[n]) })),
     manuali: controllati.filter(Boolean).slice(0, 6).map((m) => ({
       titolo: String(m.titolo).slice(0, 140),
       url: m.url,

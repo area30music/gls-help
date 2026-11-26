@@ -130,6 +130,7 @@ async function cerca(request, env, ctx) {
     errori,
     data: new Date().toISOString()
   };
+  if (corpo.debug && datiManuali) risposta.controllati = datiManuali.controllati;
 
   // Salva per 7 giorni solo le ricerche riuscite
   if (!Object.keys(errori).length) {
