@@ -58,7 +58,7 @@ async function chiaveCache(dati) {
   const testo = JSON.stringify(dati).toLowerCase();
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(testo));
   const hex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  return new Request(`https://cache.gls-help.local/search/v3/${hex}`);
+  return new Request(`https://cache.gls-help.local/search/v4/${hex}`);
 }
 
 // ---------- search: manuali, guide iFixit e video da marca e modello ----------
@@ -132,8 +132,8 @@ async function cerca(request, env, ctx) {
   };
   if (corpo.debug && datiManuali) risposta.controllati = datiManuali.controllati;
 
-  // Salva per 7 giorni solo le ricerche riuscite
-  if (!Object.keys(errori).length) {
+  // Salva per 7 giorni solo le ricerche riuscite e con almeno un manuale
+  if (!Object.keys(errori).length && risposta.manuali.length) {
     const daSalvare = new Response(JSON.stringify(risposta), {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=604800' }
     });
