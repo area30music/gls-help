@@ -24,8 +24,24 @@
     stella: '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
     esporta: '<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
     importa: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
-    piu: '<path d="M12 5v14M5 12h14"/>'
+    piu: '<path d="M12 5v14M5 12h14"/>',
+    persona: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    casa: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
+    casco: '<path d="M3 18.5h18"/><path d="M4.5 18.5V16a7.5 7.5 0 0 1 15 0v2.5"/><path d="M9.5 9V5.5h5V9"/>'
   };
+
+  // ---------- Profili ----------
+  const PROFILI = {
+    semplice: { nome: 'Semplice', icona: 'persona', testo: 'Caratteri grandi, poche scelte, risposte brevi lette ad alta voce' },
+    standard: { nome: 'Standard', icona: 'casa', testo: "L'app completa, per i lavori di casa e il fai da te" },
+    professionista: { nome: 'Professionista', icona: 'casco', testo: 'Linguaggio tecnico, schemi dettagliati e riferimenti alle norme' }
+  };
+
+  function applicaProfilo(id) {
+    GLS.profilo = PROFILI[id] ? id : null;
+    if (GLS.profilo) document.documentElement.dataset.profilo = GLS.profilo;
+    else delete document.documentElement.dataset.profilo;
+  }
   const svg = (nome) => `<svg aria-hidden="true" viewBox="0 0 24 24">${I[nome]}</svg>`;
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -60,6 +76,26 @@
 
   // ---------- Pagine ----------
   const pagine = {
+    profilo: {
+      titolo: 'Come vuoi usarla?',
+      html: () => `
+        <header class="testata">
+          <img src="favicon.svg" alt="Logo GLS Help: le lettere GLS con una chiave inglese, in un riquadro arancione" width="56" height="56">
+          <div>
+            <h1>Come vuoi usarla?</h1>
+            <p>Potrai cambiare in ogni momento da Backup.</p>
+          </div>
+        </header>
+        <div class="elenco-card">
+          ${Object.entries(PROFILI).map(([id, pr]) => `
+            <button type="button" class="card${GLS.profilo === id ? ' scelto' : ''}" data-profilo="${id}" style="width:100%;text-align:left;font:inherit"${GLS.profilo === id ? ' aria-pressed="true"' : ''}>
+              <span class="icona">${svg(pr.icona)}</span>
+              <span class="testo"><span class="tit">${pr.nome}</span><span class="sotto">${esc(pr.testo)}</span></span>
+              ${svg('freccia').replace('<svg', '<svg class="freccia"')}
+            </button>`).join('')}
+        </div>`
+    },
+
     home: {
       titolo: 'GLS Help',
       html: () => `
@@ -160,6 +196,13 @@
         </div>
         <p class="nota">Un unico file con tutti i tuoi dati e le foto, da salvare su iCloud, Google Drive o NAS.</p>
 
+        <h2 class="titoletto">Impostazioni</h2>
+        <a class="card" href="#/profilo">
+          <span class="icona">${svg(PROFILI[GLS.profilo] ? PROFILI[GLS.profilo].icona : 'persona')}</span>
+          <span class="testo"><span class="tit">Profilo: ${PROFILI[GLS.profilo] ? PROFILI[GLS.profilo].nome : '—'}</span><span class="sotto">Tocca per cambiare</span></span>
+          ${svg('freccia').replace('<svg', '<svg class="freccia"')}
+        </a>
+
         <h2 class="titoletto">Informazioni</h2>
         <dl class="info">
           <div><dt>Versione</dt><dd id="info-versione"></dd></div>
@@ -182,6 +225,7 @@
   let primaVolta = true;
 
   function percorso() {
+    if (!GLS.profilo) return 'profilo';
     const p = location.hash.replace(/^#\/?/, '').split('?')[0];
     return pagine[p] ? p : 'home';
   }
@@ -193,6 +237,7 @@
     document.title = nome === 'home' ? 'GLS Help' : `${pagina.titolo} – GLS Help`;
 
     const voce = nome === 'preferiti' || nome === 'backup' ? nome : 'home';
+    document.querySelector('.menu').hidden = !GLS.profilo;
     document.querySelectorAll('.menu a').forEach((a) => {
       if (a.dataset.voce === voce) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
@@ -219,7 +264,18 @@
   }
 
   // Funzioni non ancora pronte, ricerca e microfono
-  vista.addEventListener('click', (e) => {
+  vista.addEventListener('click', async (e) => {
+    const scelta = e.target.closest('[data-profilo]');
+    if (scelta) {
+      const id = scelta.dataset.profilo;
+      try { await DB.salva('impostazioni', { id: 'profilo', valore: id }); } catch (err) { console.warn(err); }
+      applicaProfilo(id);
+      mostraAvviso(`Profilo ${PROFILI[id].nome} attivato.`);
+      // Torna alla Home (se ci sei già, ridisegna la pagina)
+      if (location.hash === '#/' || location.hash === '') mostra();
+      else location.hash = '#/';
+      return;
+    }
     const presto = e.target.closest('[data-presto]');
     if (presto) {
       mostraAvviso(`In arrivo nella fase ${presto.dataset.presto}.`);
@@ -323,5 +379,9 @@
     });
   }
 
-  mostra();
+  // Avvio: legge il profilo salvato sul telefono
+  DB.leggi('impostazioni', 'profilo')
+    .then((r) => applicaProfilo(r && r.valore))
+    .catch(() => applicaProfilo(null))
+    .finally(mostra);
 })();
