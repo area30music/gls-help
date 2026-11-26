@@ -423,6 +423,69 @@ a.card:active, button.card:active { transform: scale(.98); }
 .ricambio .btn { min-height: 44px; font-size: 15px; }
 #soluzione .info { margin-top: 18px; }
 
+/* ---------- Risposte salvate ---------- */
+
+.salvata {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--tenue);
+  background: var(--superficie); border: 1px solid var(--bordo); border-radius: 14px; padding: 8px 12px; margin-bottom: 12px;
+}
+.salvata svg { width: 18px; height: 18px; }
+.salvata span { flex: 1; }
+.salvata button {
+  font: inherit; font-weight: 700; color: var(--testo); background: var(--accento-tenue); border: 0;
+  border-radius: 999px; padding: 8px 14px; min-height: 40px; cursor: pointer;
+}
+
+/* ---------- Manuali: azioni ---------- */
+
+.risultato { flex-wrap: wrap; }
+.azioni-manuale { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; padding: 0 8px 10px 0; }
+.azioni-manuale .btn { min-height: 42px; padding: 0 14px; font-size: 15px; flex: 1 1 auto; }
+.azioni-manuale .btn svg { width: 20px; height: 20px; }
+.pagina { font-size: 13px; font-weight: 700; background: var(--accento-tenue); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+
+/* ---------- Titoli con azione, guide ---------- */
+
+.titolo-con-azione { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.titolo-con-azione .titoletto { margin-bottom: 10px; }
+.btn.ascolta { min-height: 42px; padding: 0 14px; font-size: 15px; margin-bottom: 6px; }
+.btn.ascolta svg { width: 20px; height: 20px; }
+.titolo-guida { font-size: 24px; font-weight: 800; margin: 2px 2px 10px; }
+.pillole { display: flex; gap: 8px; flex-wrap: wrap; }
+.pillole .etichetta { font-size: 14px; padding: 5px 12px; }
+.costi { color: var(--tenue); }
+.spunte { margin: 0; padding: 0 0 0 4px; list-style: none; display: grid; gap: 6px; }
+.spunte li::before { content: "•"; color: var(--accento); font-weight: 900; margin-right: 8px; }
+.spesa { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.spesa li { background: var(--superficie); border: 1px solid var(--bordo); border-radius: 14px; }
+.spesa label { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; cursor: pointer; }
+.spesa input { width: 24px; height: 24px; accent-color: var(--accento); flex: none; margin: 0; }
+.spesa input:checked + span { text-decoration: line-through; color: var(--tenue); }
+.spesa small { color: var(--tenue); }
+.link-piccolo {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 0; border: 0; background: none;
+  color: var(--tenue); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.link-piccolo svg { width: 18px; height: 18px; }
+.box-passo .modulo { margin-top: 8px; padding: 12px; box-shadow: none; }
+.risposta-passo:empty { display: none; }
+.passi li.in-lettura { border-color: var(--accento); box-shadow: 0 0 0 2px var(--accento); }
+
+/* ---------- Lettore (mani libere) ---------- */
+
+.lettore {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 25;
+  bottom: calc(var(--menu-h) + env(safe-area-inset-bottom) + 10px);
+  width: calc(100% - 24px); max-width: 536px; background: var(--superficie);
+  border: 2px solid var(--accento); border-radius: 22px; padding: 14px; box-shadow: 0 10px 34px rgba(0, 0, 0, .25);
+}
+.lettore[hidden] { display: none; }
+.lettore-stato { margin: 0; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--tenue); }
+.lettore-testo { margin: 4px 0 12px; font-size: 16px; font-weight: 600; max-height: 30vh; overflow: auto; }
+.lettore-pulsanti { display: grid; grid-template-columns: 52px 1fr 1.4fr 52px; gap: 8px; }
+.lettore-pulsanti .btn { padding: 0; min-height: 52px; font-size: 17px; }
+.lettore-voce { margin: 8px 0 0; font-size: 13px; color: var(--tenue); text-align: center; }
+
 /* ---------- Profilo Semplice: caratteri e pulsanti più grandi, più contrasto ---------- */
 
 html[data-profilo="semplice"] body { font-size: 20px; }
@@ -443,6 +506,7 @@ html[data-profilo="semplice"] .risultato .tit { font-size: 19px; }
 html[data-profilo="semplice"] .risultato .sotto { font-size: 16px; }
 html[data-profilo="semplice"] .modulo input, html[data-profilo="semplice"] .modulo textarea { font-size: 21px; }
 html[data-profilo="semplice"] .passi li, html[data-profilo="semplice"] .cause li { font-size: 19px; }
+html[data-profilo="semplice"] .lettore-testo { font-size: 20px; }
 
 .card.scelto { border: 2px solid var(--accento); }
 .menu[hidden] { display: none; }

@@ -40,6 +40,9 @@
     attenzione: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.3v.01"/>',
     whatsapp: '<path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8a4 4 0 0 1-2-2l.8-1-1-2z"/>',
     lampadina: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/>',
+    altoparlante: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+    carrello: '<circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2.5 3.5H5l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h9a1.5 1.5 0 0 0 1.5-1.2L21 7.5H6"/>',
+    salva: '<path d="M6 3.5h12v17l-6-4-6 4z"/>',
     ingranaggio: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     persona: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     casa: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
@@ -63,9 +66,9 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // ---------- Pezzi ricorrenti ----------
-  function barraRicerca(segnaposto, etichetta) {
+  function barraRicerca(segnaposto, etichetta, destinazione = 'soluzione') {
     return `
-      <form class="ricerca" role="search" data-ricerca>
+      <form class="ricerca" role="search" data-ricerca data-destinazione="${destinazione}">
         ${svg('cerca')}
         <label class="visivamente-nascosto" for="q">${esc(etichetta)}</label>
         <input id="q" name="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="${esc(segnaposto)}">
@@ -89,6 +92,15 @@
         ${svg('freccia').replace('<svg', '<svg class="freccia"')}
       </button>`;
   }
+
+  // ---------- Categorie di Come si fa ----------
+  const CATEGORIE = {
+    elettricita: { nome: 'Elettricità', icona: 'fulmine', lavori: ['Cambiare una presa elettrica', 'Sostituire un interruttore della luce', 'Montare un lampadario', 'Cambiare una lampadina difficile', 'Capire perché salta il salvavita', 'Installare una plafoniera LED'] },
+    idraulica: { nome: 'Idraulica', icona: 'goccia', lavori: ['Sturare il lavandino', 'Cambiare il rubinetto della cucina', 'Riparare lo sciacquone che perde', 'Pulire il sifone', 'Sostituire il flessibile della doccia', 'Rifare il silicone della doccia'] },
+    mobili: { nome: 'Montaggio mobili', icona: 'mobile', lavori: ['Montare un mobile IKEA', 'Fissare un pensile al muro', 'Regolare le ante della cucina', 'Fissare una mensola', 'Appendere un quadro pesante', 'Riparare un cassetto che non scorre'] },
+    auto: { nome: 'Auto', icona: 'auto', lavori: ['Cambiare una gomma', 'Controllare e rabboccare l\'olio', 'Cambiare le spazzole tergicristallo', 'Cambiare una lampadina del faro', 'Avviare l\'auto con i cavi', 'Controllare la pressione delle gomme'] },
+    tecnologia: { nome: 'Tecnologia', icona: 'tecnologia', lavori: ['Collegare il telefono all\'auto via Bluetooth', 'Riavviare il decoder Sky', 'Risintonizzare i canali della TV', 'Migliorare il Wi-Fi in casa', 'Fare una videochiamata su WhatsApp', 'Liberare spazio sul telefono'] }
+  };
 
   // ---------- Pagine ----------
   function sceltaProfili() {
@@ -226,15 +238,59 @@
 
     'come-si-fa': {
       titolo: 'Come si fa',
-      html: () => `
+      html: () => {
+        const cat = parametri().get('categoria');
+        if (cat && CATEGORIE[cat]) {
+          const c = CATEGORIE[cat];
+          return `
+            ${testataSezione(c.nome, '#/come-si-fa')}
+            ${barraRicerca('Es. ' + c.lavori[0].toLowerCase(), 'Cerca una guida', 'guida')}
+            <div class="elenco-card">
+              ${c.lavori.map((l) => `<a class="card compatta" href="#/guida?${new URLSearchParams({ richiesta: l, categoria: c.nome })}"><span class="icona piccola">${svg(c.icona)}</span><span class="testo"><span class="tit">${esc(l)}</span></span>${svg('freccia').replace('<svg', '<svg class="freccia"')}</a>`).join('')}
+            </div>
+            <p class="nota">Non trovi il lavoro che ti serve? Scrivilo o dillo con il microfono nella barra in alto.</p>`;
+        }
+        return `
         ${testataSezione('Come si fa')}
-        ${barraRicerca('Es. cambiare una presa', 'Cerca una guida')}
+        ${barraRicerca('Es. cambiare una presa', 'Cerca una guida', 'guida')}
         <h2 class="titoletto" style="margin-top:4px">Categorie</h2>
         <div class="griglia">
-          ${[['fulmine', 'Elettricità'], ['goccia', 'Idraulica'], ['mobile', 'Montaggio mobili'], ['auto', 'Auto'], ['tecnologia', 'Tecnologia']]
-            .map(([i, t]) => `<button type="button" class="card" data-presto="5" style="font:inherit;text-align:left"><span class="icona">${svg(i)}</span><span class="tit">${t}</span></button>`).join('')}
+          ${Object.entries(CATEGORIE).map(([id, c]) => `<a class="card" href="#/come-si-fa?categoria=${id}"><span class="icona">${svg(c.icona)}</span><span class="tit">${c.nome}</span></a>`).join('')}
         </div>
-        <p class="nota">Le guide passo passo, la modalità mani libere e la lista della spesa arrivano nella fase 5.</p>`
+        <div id="guide-salvate"></div>`;
+      },
+      dopo: mostraGuideSalvate
+    },
+
+    guida: {
+      titolo: 'Guida',
+      html: () => `
+        ${testataSezione('Guida', '#/come-si-fa')}
+        <div id="guida">
+          <div class="caricamento" role="status">
+            <span class="rotella" aria-hidden="true"></span>
+            <p>Preparo la guida…</p>
+            <p class="nota">Di solito servono 10-20 secondi.</p>
+          </div>
+        </div>`,
+      dopo: caricaGuida
+    },
+
+    manuale: {
+      titolo: 'Manuale',
+      html: () => `
+        ${testataSezione('Chiedi al manuale', 'javascript:history.back()')}
+        <form class="modulo" data-domanda-manuale>
+          <p style="margin:0">Fai una domanda: leggo il manuale e ti rispondo in italiano, con le pagine.</p>
+          <div class="campo-voce">
+            <textarea name="domanda" rows="2" placeholder="Es. come pulisco la testina?">${esc(parametri().get('domanda') || '')}</textarea>
+            <button type="button" class="microfono" data-microfono="domanda" aria-label="Fai la domanda con la voce">${svg('microfono')}</button>
+          </div>
+          <button type="submit" class="btn btn-accento btn-pieno">${svg('cerca')} Chiedi</button>
+          <a class="btn btn-pieno" href="${esc(parametri().get('url') || '#')}" target="_blank" rel="noopener">${svg('documento')} Apri il manuale originale</a>
+        </form>
+        <div id="manuale"></div>`,
+      dopo: caricaManuale
     },
 
     oggetti: {
@@ -403,6 +459,8 @@
     if (e.target.closest('[data-foto-targhetta]')) { document.getElementById('foto-targhetta').click(); }
   });
   vista.addEventListener('change', (e) => {
+    if (e.target.id === 'foto-situazione' && e.target.files && e.target.files[0]) analizzaSituazione(e.target.files[0]);
+    if (e.target.matches('[data-spesa]')) spuntaSpesa(e.target);
     if (e.target.id === 'foto-targhetta' && e.target.files && e.target.files[0]) leggiTarghetta(e.target.files[0]);
   });
   vista.addEventListener('submit', (e) => {
@@ -411,8 +469,9 @@
     const q = e.target.q.value.trim();
     if (!q) return;
     e.target.q.blur();
-    // Una frase libera ("la lavatrice non scarica") va alla soluzione
-    vai('#/soluzione?' + new URLSearchParams({ problema: q }));
+    // Una frase libera va alla soluzione ("la lavatrice non scarica") o alla guida ("cambiare una presa")
+    if (e.target.dataset.destinazione === 'guida') vai('#/guida?' + new URLSearchParams({ richiesta: q }));
+    else vai('#/soluzione?' + new URLSearchParams({ problema: q }));
   });
   // Oggetto e problema in lavorazione (restano compilati tornando indietro)
   let oggettoCorrente = {};
@@ -426,6 +485,19 @@
     if (f && f.matches('[data-guasto]') && e.target.name) ricordaOggetto({ [e.target.name]: e.target.value });
   });
 
+  vista.addEventListener('submit', (e) => {
+    if (e.target.matches('[data-domanda-manuale]')) {
+      e.preventDefault();
+      const pr = new URLSearchParams(location.hash.split('?')[1] || '');
+      pr.set('domanda', e.target.domanda.value.trim());
+      pr.delete('nuova');
+      if (document.activeElement) document.activeElement.blur();
+      history.replaceState(null, '', '#/manuale?' + pr);
+      caricaManuale();
+      return;
+    }
+    if (e.target.matches('[data-domanda-passo]')) { e.preventDefault(); inviaDomandaPasso(e.target); return; }
+  });
   vista.addEventListener('submit', (e) => {
     if (!e.target.matches('[data-guasto]')) return;
     e.preventDefault();
@@ -460,7 +532,12 @@
     const domanda = { testo: p.get('testo') || '', marca: p.get('marca') || '', modello: p.get('modello') || '', tipo: p.get('tipo') || '' };
     const box = document.getElementById('risultati');
     const id = chiaveRicerca(domanda);
-    // L'archivio si legge in parallelo: la ricerca parte subito
+    const gia = await leggiSalvata(id);
+    if (gia && document.getElementById('risultati') === box) {
+      await disegnaRisultati(box, gia.risultato);
+      avvisoSalvata(box, gia.data);
+      return;
+    }
     const salvataP = DB.leggi('ricerche', id).catch(() => null);
 
     try {
@@ -522,6 +599,10 @@
             <span class="testo"><span class="tit">${esc(m.titolo)}</span><span class="sotto">${esc(info)}</span></span>
           </a>
           ${stella('manuale', { ...m, info })}
+          <div class="azioni-manuale">
+            <a class="btn" href="#/manuale?${new URLSearchParams({ url: m.url, marca: prodotto.marca || '', modello: prodotto.modello || '', tipo: prodotto.tipo || '' })}">${svg('fumetto')} Chiedi al manuale</a>
+            ${m.lingua !== 'it' && !m.pdf ? `<a class="btn" href="https://translate.google.com/translate?sl=auto&tl=it&u=${encodeURIComponent(m.url)}" target="_blank" rel="noopener">${svg('esterno')} Tradotto</a>` : ''}
+          </div>
         </li>`;
     }).join('');
 
@@ -583,6 +664,10 @@
         ${elenco.slice(0, 5).map((r) => {
           const d = r.domanda;
           const q = new URLSearchParams(Object.entries(d).filter(([, v]) => v));
+          if (r.tipo === 'guida') {
+            return `<a class="card compatta" href="#/guida?${q}"><span class="icona piccola">${svg('guida')}</span><span class="testo"><span class="tit">${esc((r.risultato && r.risultato.titolo) || d.richiesta)}</span><span class="sotto">Guida</span></span>${svg('freccia').replace('<svg', '<svg class="freccia"')}</a>`;
+          }
+          if (r.tipo === 'manuale') return '';
           if (r.tipo === 'soluzione') {
             const nome = (r.risultato && r.risultato.oggetto) || [d.marca, d.modello].join(' ') || 'Problema';
             return `<a class="card compatta" href="#/soluzione?${q}"><span class="icona piccola">${svg('lampadina')}</span><span class="testo"><span class="tit">${esc(nome)}</span><span class="sotto">${esc(d.problema || d.codice || '')}</span></span>${svg('freccia').replace('<svg', '<svg class="freccia"')}</a>`;
@@ -593,6 +678,25 @@
       </div>`;
     // Tiene solo le 20 ricerche più recenti
     for (const vecchia of elenco.slice(20)) DB.elimina('ricerche', vecchia.id).catch(() => {});
+  }
+
+  // ---------- Risposte salvate sul telefono ----------
+  async function leggiSalvata(id) {
+    if (parametri().get('nuova')) return null;
+    const attesa = new Promise((ok) => setTimeout(() => ok(null), 1500));
+    return Promise.race([DB.leggi('ricerche', id).catch(() => null), attesa]);
+  }
+  function avvisoSalvata(box, data) {
+    const d = new Date(data);
+    const quando = d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) + ' alle ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    box.insertAdjacentHTML('afterbegin', `<div class="salvata">${svg('orologio')}<span>Risposta salvata il ${esc(quando)}</span><button type="button" data-cerca-di-nuovo>Cerca di nuovo</button></div>`);
+  }
+  function cercaDiNuovo() {
+    const [base, q] = location.hash.split('?');
+    const pr = new URLSearchParams(q || '');
+    pr.set('nuova', '1');
+    history.replaceState(null, '', base + '?' + pr);
+    mostra();
   }
 
   // ---------- Chiamate al server ----------
@@ -683,7 +787,10 @@
       pannelloVoce.hidden = true;
       if (!dati.capito || !dati.testo) { mostraAvviso('Non ho capito bene: riprova parlando vicino al telefono.'); return; }
       const destinazione = pulsante.dataset.microfono;
-      if (destinazione === 'problema') {
+      if (destinazione === 'domanda' || destinazione === 'passo') {
+        const campo = pulsante.closest('form').querySelector('textarea, input');
+        if (campo) campo.value = (campo.value ? campo.value.trim() + ' ' : '') + dati.testo;
+      } else if (destinazione === 'problema') {
         const campo = document.querySelector('[data-guasto] [name="problema"]');
         if (campo) {
           campo.value = (campo.value ? campo.value.trim() + ' ' : '') + dati.testo;
@@ -758,6 +865,12 @@
     for (const k of ['tipo', 'marca', 'modello', 'problema', 'codice']) if (p.get(k)) domanda[k] = p.get(k);
     const box = document.getElementById('soluzione');
     const id = 'soluzione|' + [domanda.tipo, domanda.marca, domanda.modello, domanda.problema, domanda.codice, GLS.profilo].map((x) => (x || '').toLowerCase().trim()).join('|');
+    const gia = await leggiSalvata(id);
+    if (gia && document.getElementById('soluzione') === box) {
+      disegnaSoluzione(box, gia.risultato, domanda);
+      avvisoSalvata(box, gia.data);
+      return;
+    }
     const salvataP = DB.leggi('ricerche', id).catch(() => null);
     try {
       const d = await chiedi('diagnose', { prodotto: { tipo: domanda.tipo, marca: domanda.marca, modello: domanda.modello }, problema: domanda.problema, codice: domanda.codice }, 70000);
@@ -819,11 +932,21 @@
         </ul>` : ''}
 
       ${(d.passi || []).length ? `
-        <h2 class="titoletto">Cosa fare, passo passo</h2>
+        <div class="titolo-con-azione"><h2 class="titoletto">Cosa fare, passo passo</h2><button type="button" class="btn ascolta" data-ascolta>${svg('altoparlante')} Ascolta</button></div>
         <ol class="passi">
           ${d.passi.map((s) => `
-            <li><strong>${esc(s.titolo)}</strong>${s.dettaglio ? `<p>${esc(s.dettaglio)}</p>` : ''}${s.attenzione ? `<p class="attenzione">${svg('attenzione')} ${esc(s.attenzione)}</p>` : ''}</li>`).join('')}
+            <li><strong>${esc(s.titolo)}</strong>${s.pagina ? ` <span class="pagina">pag. ${esc(s.pagina)}</span>` : ''}${s.dettaglio ? `<p>${esc(s.dettaglio)}</p>` : ''}${s.attenzione ? `<p class="attenzione">${svg('attenzione')} ${esc(s.attenzione)}</p>` : ''}</li>`).join('')}
         </ol>` : ''}
+
+      ${d.manuale ? `
+        <div class="riquadro codice">
+          <h2>${svg('documento')} Dal manuale ufficiale</h2>
+          ${(d.manuale.pagine || []).length ? `<ul>${d.manuale.pagine.map((x) => `<li>Pag. ${esc(x.pagina)}: ${esc(x.argomento)}</li>`).join('')}</ul>` : ''}
+          <div class="riga-link" style="margin-top:10px">
+            <a class="btn" href="#/manuale?${new URLSearchParams({ url: d.manuale.url, marca: prodotto.marca || '', modello: prodotto.modello || '', domanda: domanda.problema || '' })}">${svg('fumetto')} Chiedi al manuale</a>
+            <a class="btn" href="${esc(d.manuale.url)}" target="_blank" rel="noopener">${svg('esterno')} Apri PDF</a>
+          </div>
+        </div>` : ''}
 
       <dl class="info">
         ${d.difficolta ? `<div><dt>Difficoltà</dt><dd>${esc(d.difficolta)}</dd></div>` : ''}
@@ -869,6 +992,7 @@
       <p class="nota">${esc(d.fonte || '')}. Le risposte dell'IA possono sbagliare: in caso di dubbio chiedi a un tecnico.</p>`;
 
     box.dataset.riepilogo = JSON.stringify({ nome, domanda, riassunto: d.riassunto, codice: d.codiceErrore, seriale: oggettoCorrente.seriale || '' });
+    box.dataset.lettura = JSON.stringify({ intro: d.riassunto || '', avvisi: d.sicurezza || [], passi: (d.passi || []).map((x) => ({ titolo: x.titolo, testo: [x.dettaglio, x.attenzione].filter(Boolean).join('. ') })) });
   }
 
   async function chiediAiuto() {
@@ -897,6 +1021,317 @@
     }
     window.open('https://wa.me/?text=' + encodeURIComponent(testo), '_blank', 'noopener');
   }
+
+  // ---------- Chiedi al manuale ----------
+  async function caricaManuale() {
+    const p = parametri();
+    const box = document.getElementById('manuale');
+    if (!box) return;
+    const url = p.get('url') || '';
+    const domanda = p.get('domanda') || '';
+    const prodotto = { marca: p.get('marca') || '', modello: p.get('modello') || '', tipo: p.get('tipo') || '' };
+    const id = 'manuale|' + url + '|' + domanda.toLowerCase().trim() + '|' + GLS.profilo;
+    box.innerHTML = `<div class="caricamento" role="status"><span class="rotella" aria-hidden="true"></span><p>Sto leggendo il manuale…</p><p class="nota">I manuali lunghi possono richiedere fino a un minuto.</p></div>`;
+    let d = null;
+    const gia = await leggiSalvata(id);
+    if (gia) d = gia.risultato;
+    else {
+      try {
+        d = await chiedi('manuale', { url, domanda, prodotto }, 90000);
+        DB.salva('ricerche', { id, tipo: 'manuale', domanda: { url, domanda, ...prodotto }, risultato: d, data: new Date().toISOString() }).catch(() => {});
+      } catch (err) {
+        box.innerHTML = `<div class="vuoto"><span class="icona">${svg('attenzione')}</span><h2>Non riesco a leggere il manuale</h2><p>${esc(err.message)}</p><button type="button" class="btn btn-accento" data-riprova>Riprova</button></div>`;
+        return;
+      }
+    }
+    if (document.getElementById('manuale') !== box) return;
+    box.innerHTML = `
+      ${d.linguaManuale && d.linguaManuale !== 'it' ? `<p class="nota">Il manuale è in ${esc(LINGUE[d.linguaManuale] ? LINGUE[d.linguaManuale].toLowerCase() : d.linguaManuale)}: ti rispondo tradotto in italiano.</p>` : ''}
+      ${d.trovato === false ? `<div class="riquadro professionista"><h2>Il manuale non ne parla</h2></div>` : ''}
+      ${d.risposta ? `<p class="riassunto">${esc(d.risposta)}</p>` : ''}
+      ${(d.sicurezza || []).length ? `<div class="riquadro sicurezza" role="note"><h2>${svg('attenzione')} Sicurezza</h2><ul>${d.sicurezza.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${(d.passi || []).length ? `
+        <div class="titolo-con-azione"><h2 class="titoletto">Passo passo</h2><button type="button" class="btn ascolta" data-ascolta>${svg('altoparlante')} Ascolta</button></div>
+        <ol class="passi">${d.passi.map((s) => `<li><strong>${esc(s.titolo)}</strong>${s.pagina ? ` <span class="pagina">pag. ${esc(s.pagina)}</span>` : ''}${s.dettaglio ? `<p>${esc(s.dettaglio)}</p>` : ''}</li>`).join('')}</ol>` : ''}
+      ${(d.pagine || []).length ? `<h2 class="titoletto">Pagine utili</h2><ul class="domande">${d.pagine.map((x) => `<li><strong>Pag. ${esc(x.pagina)}</strong> · ${esc(x.argomento)}</li>`).join('')}</ul>` : ''}
+      <p class="nota">${esc(d.fonte || '')}. Controlla sempre sul manuale originale.</p>`;
+    if (gia) avvisoSalvata(box, gia.data);
+    box.id = 'manuale';
+    box.dataset.lettura = JSON.stringify({ intro: d.risposta || '', avvisi: d.sicurezza || [], passi: (d.passi || []).map((x) => ({ titolo: x.titolo, testo: x.dettaglio })) });
+  }
+
+  // ---------- Guide "Come si fa" ----------
+  async function caricaGuida() {
+    const p = parametri();
+    const richiesta = p.get('richiesta') || '';
+    const categoria = p.get('categoria') || '';
+    const box = document.getElementById('guida');
+    const id = 'guida|' + richiesta.toLowerCase().trim() + '|' + GLS.profilo;
+    // Prima le guide salvate per l'uso offline, poi quelle già chieste
+    let salvataOffline = null;
+    try { salvataOffline = await DB.leggi('guide', id); } catch { /* niente */ }
+    const gia = salvataOffline && !parametri().get('nuova') ? { risultato: salvataOffline.guida, data: salvataOffline.data } : await leggiSalvata(id);
+    if (gia) { disegnaGuida(box, gia.risultato, id, Boolean(salvataOffline)); avvisoSalvata(box, gia.data); return; }
+    try {
+      const d = await chiedi('howto', { richiesta, categoria }, 70000);
+      DB.salva('ricerche', { id, tipo: 'guida', domanda: { richiesta, categoria }, risultato: d, data: new Date().toISOString() }).catch(() => {});
+      if (salvataOffline) DB.salva('guide', { ...salvataOffline, guida: d, data: new Date().toISOString() }).catch(() => {});
+      if (document.getElementById('guida') === box) disegnaGuida(box, d, id, Boolean(salvataOffline));
+    } catch (err) {
+      if (document.getElementById('guida') !== box) return;
+      box.innerHTML = `<div class="vuoto"><span class="icona">${svg('attenzione')}</span><h2>Non ci sono riuscito</h2><p>${esc(err.message)}</p><button type="button" class="btn btn-accento" data-riprova>Riprova</button></div>`;
+    }
+  }
+
+  let guidaCorrente = null;
+  function disegnaGuida(box, d, id, offline) {
+    guidaCorrente = { id, d };
+    const fdt = d.faiDaTe || {};
+    const pro = fdt.consiglio === 'professionista';
+    const video = (d.video || []).slice(0, GLS.profilo === 'semplice' ? 3 : 4).map((v) => `
+      <li class="risultato video"><a href="${esc(v.url)}" target="_blank" rel="noopener">
+        <span class="anteprima">${v.immagine ? `<img src="${esc(v.immagine)}" alt="Anteprima del video: ${esc(v.titolo)}" loading="lazy" width="320" height="180">` : svg('play')}${v.durata ? `<span class="durata">${esc(v.durata)}</span>` : ''}</span>
+        <span class="testo"><span class="tit">${esc(v.titolo)}</span><span class="sotto">${esc(v.canale || '')}</span></span></a></li>`).join('');
+    box.innerHTML = `
+      <h2 class="titolo-guida">${esc(d.titolo)}</h2>
+      <div class="pillole">
+        ${d.difficolta ? `<span class="etichetta">Difficoltà: ${esc(d.difficolta)}</span>` : ''}
+        ${d.tempo ? `<span class="etichetta">${esc(d.tempo)}</span>` : ''}
+      </div>
+
+      <div class="riquadro ${pro ? 'professionista' : 'codice'}">
+        <h2>${pro ? 'Meglio un professionista' : 'Puoi farlo da te'}</h2>
+        ${fdt.perche ? `<p>${esc(fdt.perche)}</p>` : ''}
+        <p class="costi">${fdt.costoFaiDaTe ? `Fai da te: <strong>${esc(fdt.costoFaiDaTe)}</strong>` : ''}${fdt.costoFaiDaTe && fdt.costoProfessionista ? ' · ' : ''}${fdt.costoProfessionista ? `Professionista: <strong>${esc(fdt.costoProfessionista)}</strong>` : ''}</p>
+      </div>
+
+      ${(d.sicurezza || []).length ? `<div class="riquadro sicurezza" role="note"><h2>${svg('attenzione')} Sicurezza</h2><ul>${d.sicurezza.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+
+      ${(d.attrezzi || []).length ? `<h2 class="titoletto">Attrezzi</h2><ul class="spunte">${d.attrezzi.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+
+      ${(d.materiali || []).length ? `
+        <div class="titolo-con-azione"><h2 class="titoletto">Lista della spesa</h2><button type="button" class="btn ascolta" data-condividi-spesa>${svg('carrello')} Condividi</button></div>
+        <ul class="spesa">${d.materiali.map((m, n) => `
+          <li><label><input type="checkbox" data-spesa="${n}"${guidaCorrente.spesa && guidaCorrente.spesa[n] ? ' checked' : ''}>
+            <span><strong>${esc(m.nome)}</strong>${m.quantita ? ` · ${esc(m.quantita)}` : ''}${m.note ? `<br><small>${esc(m.note)}</small>` : ''}</span></label></li>`).join('')}
+        </ul>` : ''}
+
+      ${(d.passi || []).length ? `
+        <div class="titolo-con-azione"><h2 class="titoletto">Passo passo</h2><button type="button" class="btn ascolta" data-ascolta>${svg('altoparlante')} Mani libere</button></div>
+        <ol class="passi">${d.passi.map((s, n) => `
+          <li><strong>${esc(s.titolo)}</strong>${s.dettaglio ? `<p>${esc(s.dettaglio)}</p>` : ''}${s.attenzione ? `<p class="attenzione">${svg('attenzione')} ${esc(s.attenzione)}</p>` : ''}
+            <button type="button" class="link-piccolo" data-chiedi-passo="${n}">${svg('fumetto')} Ho un dubbio su questo passaggio</button>
+            <div class="box-passo" id="passo-${n}"></div></li>`).join('')}</ol>` : ''}
+
+      <button type="button" class="btn btn-pieno" data-foto-situazione style="margin-top:14px">${svg('fotocamera')} Manda una foto della situazione</button>
+      <input type="file" accept="image/*" capture="environment" id="foto-situazione" hidden>
+      <div id="esito-situazione"></div>
+
+      ${(d.consigli || []).length ? `<h2 class="titoletto">Consigli</h2><ul class="domande">${d.consigli.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${(d.errori || []).length ? `<h2 class="titoletto">Errori da evitare</h2><ul class="domande">${d.errori.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${video ? `<h2 class="titoletto">Video</h2><ul class="risultati">${video}</ul>` : ''}
+      ${(d.fonti || []).length ? `<h2 class="titoletto">Fonti</h2><ul class="risultati">${d.fonti.map((f) => `<li class="risultato"><a href="${esc(f.url)}" target="_blank" rel="noopener"><span class="icona piccola">${svg('esterno')}</span><span class="testo"><span class="tit">${esc(f.titolo || f.url)}</span></span></a></li>`).join('')}</ul>` : ''}
+
+      <div class="riga-pulsanti" style="margin-top:20px">
+        <button type="button" class="btn ${offline ? '' : 'btn-accento'} btn-pieno" data-salva-guida>${svg('salva')} ${offline ? 'Salvata: disponibile anche offline' : 'Salva per usarla offline'}</button>
+      </div>
+      <p class="nota">${esc(d.fonte || '')}. Le risposte dell'IA possono sbagliare: in caso di dubbio chiedi a un professionista.</p>`;
+    box.dataset.lettura = JSON.stringify({ intro: d.titolo, avvisi: d.sicurezza || [], passi: (d.passi || []).map((x) => ({ titolo: x.titolo, testo: [x.dettaglio, x.attenzione].filter(Boolean).join('. ') })) });
+  }
+
+  async function salvaGuida() {
+    if (!guidaCorrente) return;
+    const { id, d } = guidaCorrente;
+    try {
+      await DB.salva('guide', { id, titolo: d.titolo, richiesta: d.richiesta, categoria: d.categoria, guida: d, spesa: guidaCorrente.spesa || {}, data: new Date().toISOString() });
+      mostraAvviso('Guida salvata: la trovi in Come si fa, anche senza internet.');
+      const b = document.querySelector('[data-salva-guida]');
+      if (b) { b.classList.remove('btn-accento'); b.innerHTML = svg('salva') + ' Salvata: disponibile anche offline'; }
+    } catch { mostraAvviso('Non riesco a salvare sul telefono.'); }
+  }
+
+  async function spuntaSpesa(casella) {
+    if (!guidaCorrente) return;
+    guidaCorrente.spesa = { ...(guidaCorrente.spesa || {}), [casella.dataset.spesa]: casella.checked };
+    try {
+      const g = await DB.leggi('guide', guidaCorrente.id);
+      if (g) DB.salva('guide', { ...g, spesa: guidaCorrente.spesa });
+    } catch { /* niente */ }
+  }
+
+  async function condividiSpesa() {
+    if (!guidaCorrente) return;
+    const d = guidaCorrente.d;
+    const testo = `Lista della spesa – ${d.titolo}\n` + (d.materiali || []).map((m) => `• ${m.nome}${m.quantita ? ` (${m.quantita})` : ''}${m.note ? ` – ${m.note}` : ''}`).join('\n')
+      + ((d.attrezzi || []).length ? `\n\nAttrezzi: ${d.attrezzi.join(', ')}` : '');
+    try { if (navigator.share) { await navigator.share({ text: testo }); return; } } catch (err) { if (err && err.name === 'AbortError') return; }
+    window.open('https://wa.me/?text=' + encodeURIComponent(testo), '_blank', 'noopener');
+  }
+
+  async function mostraGuideSalvate() {
+    const box = document.getElementById('guide-salvate');
+    if (!box) return;
+    let elenco = [];
+    try { elenco = await DB.tutti('guide'); } catch { return; }
+    if (!elenco.length) return;
+    elenco.sort((a, b) => b.data.localeCompare(a.data));
+    box.innerHTML = `<h2 class="titoletto">Le tue guide salvate</h2><div class="elenco-card">${elenco.map((g) => `<a class="card compatta" href="#/guida?${new URLSearchParams({ richiesta: g.richiesta || g.titolo, categoria: g.categoria || '' })}"><span class="icona piccola">${svg('salva')}</span><span class="testo"><span class="tit">${esc(g.titolo)}</span><span class="sotto">Disponibile offline</span></span>${svg('freccia').replace('<svg', '<svg class="freccia"')}</a>`).join('')}</div>`;
+  }
+
+  function apriDomandaPasso(b) {
+    const n = b.dataset.chiediPasso;
+    const box = document.getElementById('passo-' + n);
+    if (!box || box.innerHTML) { if (box) box.innerHTML = ''; return; }
+    box.innerHTML = `<form class="modulo piccolo" data-domanda-passo="${n}">
+      <div class="campo-voce"><textarea name="domanda" rows="2" placeholder="Es. quale filo va dove?"></textarea>
+      <button type="button" class="microfono" data-microfono="passo" aria-label="Fai la domanda con la voce">${svg('microfono')}</button></div>
+      <button type="submit" class="btn btn-accento btn-pieno">Chiedi</button><div class="risposta-passo"></div></form>`;
+    box.querySelector('textarea').focus();
+  }
+
+  async function inviaDomandaPasso(form) {
+    const n = Number(form.dataset.domandaPasso);
+    const d = guidaCorrente && guidaCorrente.d;
+    const out = form.querySelector('.risposta-passo');
+    const domanda = form.domanda.value.trim();
+    if (!domanda || !d) return;
+    out.innerHTML = `<div class="esito"><span class="rotella piccola" aria-hidden="true"></span> Ci penso…</div>`;
+    try {
+      const passo = d.passi[n] || {};
+      const r = await chiedi('domanda', { domanda, contesto: `Guida: ${d.titolo}. Passaggio ${n + 1}: ${passo.titolo}. ${passo.dettaglio || ''}` }, 60000);
+      out.innerHTML = `<div class="esito ok">${svg('lampadina')}<div>${esc(r.risposta)}${(r.sicurezza || []).length ? `<br><strong>${esc(r.sicurezza.join(' '))}</strong>` : ''}</div></div>`;
+    } catch (err) { out.innerHTML = `<div class="esito errore">${svg('attenzione')}<div>${esc(err.message)}</div></div>`; }
+  }
+
+  async function analizzaSituazione(file) {
+    const box = document.getElementById('esito-situazione');
+    const d = guidaCorrente && guidaCorrente.d;
+    if (!box) return;
+    box.innerHTML = `<div class="esito" style="margin-top:10px"><span class="rotella piccola" aria-hidden="true"></span> Guardo la foto…</div>`;
+    try {
+      const foto = await riduciFoto(file);
+      const r = await chiedi('domanda', { immagine: await inBase64(foto), mime: 'image/jpeg', domanda: 'Cosa vedi e come devo procedere con questo lavoro?', contesto: d ? `Guida: ${d.titolo}. Passaggi: ${(d.passi || []).map((x, i) => `${i + 1}. ${x.titolo}`).join('; ')}` : '' }, 60000);
+      box.innerHTML = `<div class="esito ok" style="margin-top:10px">${svg('fotocamera')}<div>${esc(r.risposta)}${(r.sicurezza || []).length ? `<br><strong>${esc(r.sicurezza.join(' '))}</strong>` : ''}</div></div>`;
+    } catch (err) { box.innerHTML = `<div class="esito errore" style="margin-top:10px">${svg('attenzione')}<div>${esc(err.message)}</div></div>`; }
+  }
+
+  // ---------- Lettura ad alta voce (mani libere) ----------
+  const lettore = document.createElement('div');
+  lettore.className = 'lettore';
+  lettore.hidden = true;
+  lettore.setAttribute('role', 'region');
+  lettore.setAttribute('aria-label', 'Lettura ad alta voce');
+  lettore.innerHTML = `
+    <p class="lettore-stato"></p>
+    <p class="lettore-testo"></p>
+    <div class="lettore-pulsanti">
+      <button type="button" class="btn" data-lettore="indietro" aria-label="Passaggio precedente">‹</button>
+      <button type="button" class="btn" data-lettore="ripeti">Ripeti</button>
+      <button type="button" class="btn btn-accento" data-lettore="avanti">Avanti</button>
+      <button type="button" class="btn" data-lettore="stop" aria-label="Chiudi la lettura">✕</button>
+    </div>
+    <p class="lettore-voce"></p>`;
+  document.body.appendChild(lettore);
+  let lettura = null;
+  const Riconoscimento = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function voceItaliana() {
+    const voci = speechSynthesis.getVoices().filter((v) => /^it/i.test(v.lang));
+    return voci.find((v) => /premium|enhanced|alice|federica/i.test(v.name)) || voci[0] || null;
+  }
+
+  function parla(testo, poi) {
+    speechSynthesis.cancel();
+    testo = String(testo).replace(/\.\s*\./g, '.').replace(/\s+/g, ' ');
+    const u = new SpeechSynthesisUtterance(testo);
+    u.lang = 'it-IT';
+    const v = voceItaliana();
+    if (v) u.voice = v;
+    u.rate = GLS.profilo === 'semplice' ? 0.9 : 1;
+    u.onend = () => { if (poi) poi(); };
+    speechSynthesis.speak(u);
+  }
+
+  function avviaLettura(box) {
+    if (!box || !('speechSynthesis' in window)) { mostraAvviso('Questo telefono non può leggere ad alta voce.'); return; }
+    let dati = {};
+    try { dati = JSON.parse(box.dataset.lettura || '{}'); } catch { /* niente */ }
+    const passi = dati.passi || [];
+    if (!passi.length) return;
+    lettura = { passi, n: -1, box, intro: [dati.intro, ...(dati.avvisi || []).slice(0, 2)].filter(Boolean).join('. ') };
+    lettore.hidden = false;
+    lettore.querySelector('.lettore-voce').textContent = Riconoscimento ? 'Puoi dire: "avanti", "ripeti", "indietro" o "basta".' : 'Usa i pulsanti per andare avanti.';
+    leggiPasso(-1);
+  }
+
+  function leggiPasso(n) {
+    if (!lettura) return;
+    lettura.n = Math.max(-1, Math.min(n, lettura.passi.length));
+    const tutti = lettura.box.querySelectorAll('.passi > li');
+    tutti.forEach((li, i) => li.classList.toggle('in-lettura', i === lettura.n));
+    if (lettura.n >= 0 && tutti[lettura.n]) tutti[lettura.n].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    let testo;
+    if (lettura.n === -1) {
+      lettore.querySelector('.lettore-stato').textContent = 'Prima di iniziare';
+      testo = (lettura.intro ? lettura.intro + '. ' : '') + `Ci sono ${lettura.passi.length} passaggi. Di' avanti quando sei pronto.`;
+    } else if (lettura.n >= lettura.passi.length) {
+      lettore.querySelector('.lettore-stato').textContent = 'Fine';
+      testo = 'Hai finito tutti i passaggi. Ottimo lavoro!';
+    } else {
+      const s = lettura.passi[lettura.n];
+      lettore.querySelector('.lettore-stato').textContent = `Passaggio ${lettura.n + 1} di ${lettura.passi.length}`;
+      testo = `Passaggio ${lettura.n + 1}. ${s.titolo}. ${s.testo || ''}`;
+    }
+    lettore.querySelector('.lettore-testo').textContent = testo.replace(/\.\s*\./g, '.');
+    parla(testo, ascoltaComando);
+  }
+
+  let riconoscitore = null;
+  function ascoltaComando() {
+    if (!lettura || !Riconoscimento) return;
+    try {
+      if (riconoscitore) riconoscitore.abort();
+      riconoscitore = new Riconoscimento();
+      riconoscitore.lang = 'it-IT';
+      riconoscitore.interimResults = false;
+      riconoscitore.maxAlternatives = 3;
+      const stato = { comando: false };
+      riconoscitore.onresult = (e) => {
+        const detto = [...e.results[0]].map((a) => a.transcript.toLowerCase()).join(' ');
+        if (/avanti|prossim|success|vai|fatto/.test(detto)) { stato.comando = true; leggiPasso(lettura.n + 1); }
+        else if (/ripet|ancora|non ho capito/.test(detto)) { stato.comando = true; leggiPasso(lettura.n); }
+        else if (/indietro|precedent/.test(detto)) { stato.comando = true; leggiPasso(lettura.n - 1); }
+        else if (/basta|stop|ferma|fine/.test(detto)) { stato.comando = true; fermaLettura(); }
+      };
+      riconoscitore.onend = () => {
+        // Se non ha sentito un comando, continua ad ascoltare finché la lettura è aperta
+        if (lettura && !stato.comando && !speechSynthesis.speaking) setTimeout(ascoltaComando, 300);
+      };
+      riconoscitore.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { riconoscitore = null; lettore.querySelector('.lettore-voce').textContent = 'Usa i pulsanti per andare avanti.'; } };
+      riconoscitore.start();
+    } catch { /* comandi vocali non disponibili */ }
+  }
+
+  function fermaLettura() {
+    speechSynthesis.cancel();
+    if (riconoscitore) { try { riconoscitore.abort(); } catch { /* */ } riconoscitore = null; }
+    if (lettura) lettura.box.querySelectorAll('.passi > li').forEach((li) => li.classList.remove('in-lettura'));
+    lettura = null;
+    lettore.hidden = true;
+  }
+
+  lettore.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-lettore]');
+    if (!b || !lettura) return;
+    if (riconoscitore) { try { riconoscitore.abort(); } catch { /* */ } }
+    const azione = b.dataset.lettore;
+    if (azione === 'avanti') leggiPasso(lettura.n + 1);
+    if (azione === 'ripeti') leggiPasso(lettura.n);
+    if (azione === 'indietro') leggiPasso(lettura.n - 1);
+    if (azione === 'stop') fermaLettura();
+  });
+  window.addEventListener('hashchange', fermaLettura);
+  window.addEventListener('popstate', fermaLettura);
 
   // ---------- Preferiti ----------
   const TIPI_PREFERITI = { manuale: 'Manuali', video: 'Video', guida: 'Guide di riparazione' };
@@ -938,6 +1373,14 @@
     const riprova = e.target.closest('[data-riprova]');
     if (riprova) { mostra(); return; }
     if (e.target.closest('[data-chiedi-aiuto]')) { chiediAiuto(); return; }
+    if (e.target.closest('[data-cerca-di-nuovo]')) { cercaDiNuovo(); return; }
+    const ascoltaBtn = e.target.closest('[data-ascolta]');
+    if (ascoltaBtn) { avviaLettura(ascoltaBtn.closest('#soluzione, #guida, #manuale')); return; }
+    if (e.target.closest('[data-salva-guida]')) { salvaGuida(); return; }
+    if (e.target.closest('[data-condividi-spesa]')) { condividiSpesa(); return; }
+    const chiediPasso = e.target.closest('[data-chiedi-passo]');
+    if (chiediPasso) { apriDomandaPasso(chiediPasso); return; }
+    if (e.target.closest('[data-foto-situazione]')) { document.getElementById('foto-situazione').click(); return; }
 
     const togli = e.target.closest('[data-togli]');
     if (togli) {
