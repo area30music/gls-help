@@ -28,12 +28,29 @@ export async function chiediGemini(env, parti, { ricercaGoogle = false, json = f
   if (json && !ricercaGoogle) body.generationConfig.responseMimeType = 'application/json';
 
   let ultimoErrore;
-  for (const modello of (ricercaGoogle ? modelli.slice(0, 1) : modelli)) {
-    const r = await fetch(`${BASE}${modello}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-      body: JSON.stringify(body)
-    });
+  const corpo = JSON.stringify(body);
+  const inizio = Date.now();
+  // Se tutti i modelli sono sovraccarichi, un secondo giro breve sul più leggero
+  const giro = ricercaGoogle ? modelli.slice(0, 1) : [...modelli, 'gemini-3.5-flash-lite'];
+  for (const [n, modello] of giro.entries()) {
+    const restante = 55000 - (Date.now() - inizio);
+    if (restante < 4000) break;
+    if (n === modelli.length) await new Promise((ok) => setTimeout(ok, 1500));
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), Math.min(restante, n < 2 ? 25000 : 15000));
+    let r;
+    try {
+      r = await fetch(`${BASE}${modello}:generateContent`, {
+        method: 'POST', signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+        body: corpo
+      });
+    } catch (e) {
+      clearTimeout(timer);
+      ultimoErrore = new Error('Gemini non ha risposto in tempo: riprova tra poco');
+      continue;
+    }
+    clearTimeout(timer);
     if (r.status === 404) { ultimoErrore = new Error(`Modello ${modello} non disponibile`); continue; }
     if (r.status === 503 || r.status === 500) { ultimoErrore = new Error('Gemini è sovraccarico in questo momento: riprova tra poco'); continue; }
     if (r.status === 429) {
