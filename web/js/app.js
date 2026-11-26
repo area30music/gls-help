@@ -122,7 +122,7 @@
           </a>
           <a class="card" href="#/oggetti">
             <span class="icona">${svg('scatola')}</span>
-            <span class="testo"><h2>I miei oggetti</h2><p>Garanzie, interventi e manutenzioni</p></span>
+            <span class="testo"><h2>I miei oggetti</h2><p>Oggetti e dispositivi, garanzie e manutenzioni</p></span>
             ${svg('freccia').replace('<svg', '<svg class="freccia"')}
           </a>
         </div>
