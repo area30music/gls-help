@@ -1,6 +1,6 @@
 // Funzioni di intelligenza artificiale: voce, foto della targhetta, diagnosi del guasto.
 import { chiediGemini, leggiJSON } from './gemini.js';
-import { cercaYoutube } from './fonti.js';
+import { cercaYoutube, cercaTavily } from './fonti.js';
 
 const testo = (v, max = 300) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, max);
 const MAX_BASE64 = 8 * 1024 * 1024; // circa 6 MB di file
@@ -79,13 +79,23 @@ export async function diagnostica(env, corpo) {
   if (!problema && !codice) throw new Error('Descrivi il problema o scrivi il codice di errore');
   const profilo = REGOLE_PROFILO[corpo.profilo] ? corpo.profilo : 'standard';
 
+  // Fonti reali dal web (se c'è la chiave Tavily): rendono la risposta specifica per il modello
+  const oggettoTesto = [p.marca, p.modello, p.tipo].filter(Boolean).join(' ');
+  let fontiWeb = [];
+  try {
+    fontiWeb = (await cercaTavily(env, [oggettoTesto, codice ? `errore ${codice}` : '', problema].filter(Boolean).join(' ').slice(0, 300), { max: 6 })).slice(0, 6);
+  } catch { /* facoltativo */ }
+  const contesto = fontiWeb.length
+    ? `\nInformazioni trovate sul web (usale se pertinenti; se sono in contrasto tra loro, dillo nella nota sull'affidabilità):\n${fontiWeb.map((f, n) => `[${n + 1}] ${f.titolo} (${f.url})\n${f.estratto}`).join('\n\n')}\n`
+    : '';
+
   const prompt = `Sei il tecnico esperto di GLS Help, un'app italiana per riparare oggetti di casa e risolvere problemi di tecnologia.
 ${REGOLE_PROFILO[profilo]}
 
 Oggetto: ${[p.tipo, p.marca, p.modello].filter(Boolean).join(' ') || 'non indicato (deducilo dalla descrizione)'}
 Problema descritto: ${problema || '(nessuna descrizione)'}
 ${codice ? `Codice di errore sul display: ${codice}` : ''}
-
+${contesto}
 Regole di sicurezza OBBLIGATORIE:
 - Se c'è da toccare parti elettriche, il PRIMO passaggio è "Stacca la corrente" (togli la spina o abbassa l'interruttore) ${profilo === 'professionista' ? 'e verifica l\'assenza di tensione' : ''}.
 - Avvisa per acqua (chiudi il rubinetto, attenzione all'acqua residua), gas (mai fai da te sull'impianto gas), gas refrigerante (solo frigorista abilitato), condensatori (possono restare carichi anche a spina staccata), parti calde o taglienti.
@@ -109,6 +119,7 @@ Rispondi SOLO con JSON:
  "affidabilita": "alta|media|bassa",
  "nota_affidabilita": "perché",
  "domande": ["1-3 domande che aiuterebbero a capire meglio il guasto"],
+ "fonti_usate": [1, 2],
  "ricerca_video": "4-7 parole per cercare un video di riparazione su YouTube"
 }
 "codice_errore" vuoto se non c'è un codice. "ricambi" vuoto se non servono pezzi. Massimo 4 cause e ${profilo === 'semplice' ? 5 : 10} passi.`;
@@ -160,7 +171,9 @@ Rispondi SOLO con JSON:
     notaAffidabilita: testo(d.nota_affidabilita, 300),
     domande: lista(d.domande, 3).map((x) => testo(x, 200)).filter(Boolean),
     video: video.status === 'fulfilled' ? video.value : [],
-    fonte: 'Conoscenze di Gemini (' + risposta.value.modello + ')',
+    fonti: (Array.isArray(d.fonti_usate) ? d.fonti_usate : []).map((n) => fontiWeb[Number(n) - 1]).filter(Boolean)
+      .map((f) => ({ titolo: f.titolo, url: f.url })).slice(0, 5),
+    fonte: (fontiWeb.length ? 'Gemini con fonti dal web' : 'Conoscenze di Gemini') + ' (' + risposta.value.modello + ')',
     data: new Date().toISOString()
   };
 }

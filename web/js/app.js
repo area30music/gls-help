@@ -37,6 +37,9 @@
     esterno: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
     stellaPiena: '<path fill="currentColor" d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
     orologio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    attenzione: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.3v.01"/>',
+    whatsapp: '<path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8a4 4 0 0 1-2-2l.8-1-1-2z"/>',
+    lampadina: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/>',
     ingranaggio: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     persona: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     casa: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
@@ -155,36 +158,56 @@
 
     guasto: {
       titolo: 'Ho un guasto',
-      html: () => `
+      html: () => {
+        const o = oggettoCorrente;
+        return `
         ${testataSezione('Ho un guasto')}
-        ${barraRicerca('Es. lavatrice Samsung WW90', 'Cerca manuali, guide e video')}
 
-        <form class="modulo" data-cerca-modello>
-          <h2>Manuali, guide e video</h2>
-          <p>Scrivi marca e modello: li trovi sulla targhetta dell'oggetto.</p>
-          <label><span>Che oggetto è? <em>(facoltativo)</em></span>
-            <input name="tipo" autocomplete="off" placeholder="Es. lavatrice" enterkeyhint="next">
+        <form class="modulo" data-guasto>
+          <h2><span class="numero">1</span> Che oggetto è?</h2>
+          <button type="button" class="btn btn-pieno" data-foto-targhetta>${svg('fotocamera')} Fotografa la targhetta</button>
+          <input type="file" accept="image/*" capture="environment" id="foto-targhetta" hidden>
+          <div id="esito-targhetta"></div>
+          <label><span>Tipo di oggetto</span>
+            <input name="tipo" autocomplete="off" placeholder="Es. lavatrice, stampante, TV" value="${esc(o.tipo || '')}" enterkeyhint="next">
           </label>
           <label><span>Marca</span>
-            <input name="marca" autocomplete="off" placeholder="Es. Samsung" required enterkeyhint="next">
+            <input name="marca" autocomplete="off" placeholder="Es. Samsung" value="${esc(o.marca || '')}" enterkeyhint="next">
           </label>
           <label><span>Modello</span>
-            <input name="modello" autocomplete="off" autocapitalize="characters" placeholder="Es. WW90T534DAW" required enterkeyhint="search">
+            <input name="modello" autocomplete="off" autocapitalize="characters" placeholder="Es. WW90T534DAW" value="${esc(o.modello || '')}" enterkeyhint="next">
           </label>
-          <button type="submit" class="btn btn-accento btn-pieno">${svg('cerca')} Cerca</button>
+
+          <h2 style="margin-top:8px"><span class="numero">2</span> Qual è il problema?</h2>
+          <div class="campo-voce">
+            <textarea name="problema" rows="3" placeholder="Es. non scarica l'acqua e fa un rumore strano">${esc(o.problema || '')}</textarea>
+            <button type="button" class="microfono" data-microfono="problema" aria-label="Descrivi il problema con la voce">${svg('microfono')}</button>
+          </div>
+          <label><span>Codice di errore <em>(se c'è sul display)</em></span>
+            <input name="codice" autocomplete="off" autocapitalize="characters" placeholder="Es. E21, 5C, F05" value="${esc(o.codice || '')}">
+          </label>
+
+          <button type="submit" class="btn btn-accento btn-pieno" data-azione="soluzione">${svg('lampadina')} Trova la soluzione</button>
+          <button type="submit" class="btn btn-pieno" data-azione="manuali">${svg('documento')} Solo manuali e video</button>
         </form>
 
-        <div id="recenti"></div>
-
-        <h2 class="titoletto">In arrivo</h2>
-        <div class="elenco-card">
-          ${cardAzione('fotocamera', 'Fotografa la targhetta', 'Leggo marca, modello e numero di serie', 'data-presto="3"')}
-          ${cardAzione('fumetto', 'Descrivi il problema', 'A parole o con la voce', 'data-presto="4"')}
-          ${cardAzione('codice', 'Codice errore', 'Cosa significa il codice sul display', 'data-presto="4"')}
-          ${cardAzione('ricambio', 'Ricambi', 'Codice del pezzo e dove cercarlo', 'data-presto="4"')}
-        </div>
-        <p class="nota">La lettura della targhetta arriva nella fase 3; la diagnosi completa nella fase 4.</p>`,
+        <div id="recenti"></div>`;
+      },
       dopo: mostraRecenti
+    },
+
+    soluzione: {
+      titolo: 'Soluzione',
+      html: () => `
+        ${testataSezione('Soluzione', '#/guasto')}
+        <div id="soluzione">
+          <div class="caricamento" role="status">
+            <span class="rotella" aria-hidden="true"></span>
+            <p>Sto analizzando il problema…</p>
+            <p class="nota">Di solito servono 10-20 secondi.</p>
+          </div>
+        </div>`,
+      dopo: caricaSoluzione
     },
 
     risultati: {
@@ -326,13 +349,25 @@
   });
 
   // Altezza reale dello schermo (iPhone installato sulla Home)
+  // La tastiera deve coprire la pagina, non rimpicciolirla: si usa l'altezza piena dello schermo
+  // e non la si cambia mentre si scrive in un campo.
+  let altezzaMax = 0;
+  let orientamento = screen.orientation ? screen.orientation.type : String(window.orientation);
+  const staScrivendo = () => {
+    const el = document.activeElement;
+    return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  };
   function misuraSchermo() {
-    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    document.documentElement.style.setProperty('--altezza', Math.round(h) + 'px');
+    const ora = screen.orientation ? screen.orientation.type : String(window.orientation);
+    if (ora !== orientamento) { orientamento = ora; altezzaMax = 0; }
+    if (staScrivendo() && altezzaMax) return;
+    altezzaMax = Math.max(altezzaMax, window.innerHeight);
+    document.documentElement.style.setProperty('--altezza', altezzaMax + 'px');
   }
   misuraSchermo();
   window.addEventListener('resize', misuraSchermo);
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', misuraSchermo);
+  window.addEventListener('orientationchange', () => setTimeout(misuraSchermo, 300));
+  document.addEventListener('focusout', () => setTimeout(misuraSchermo, 400));
 
   // ---------- Avvisi brevi ----------
   const avviso = document.getElementById('avviso');
@@ -363,9 +398,12 @@
       mostraAvviso(`In arrivo nella fase ${presto.dataset.presto}.`);
       return;
     }
-    if (e.target.closest('[data-microfono]')) {
-      mostraAvviso('La ricerca a voce arriva nella fase 3.');
-    }
+    const mic = e.target.closest('[data-microfono]');
+    if (mic) { ascolta(mic); return; }
+    if (e.target.closest('[data-foto-targhetta]')) { document.getElementById('foto-targhetta').click(); }
+  });
+  vista.addEventListener('change', (e) => {
+    if (e.target.id === 'foto-targhetta' && e.target.files && e.target.files[0]) leggiTarghetta(e.target.files[0]);
   });
   vista.addEventListener('submit', (e) => {
     if (!e.target.matches('[data-ricerca]')) return;
@@ -373,16 +411,39 @@
     const q = e.target.q.value.trim();
     if (!q) return;
     e.target.q.blur();
-    vai('#/risultati?' + new URLSearchParams({ testo: q }));
+    // Una frase libera ("la lavatrice non scarica") va alla soluzione
+    vai('#/soluzione?' + new URLSearchParams({ problema: q }));
   });
+  // Oggetto e problema in lavorazione (restano compilati tornando indietro)
+  let oggettoCorrente = {};
+  try { oggettoCorrente = JSON.parse(sessionStorage.getItem('gls-oggetto') || '{}'); } catch { /* niente */ }
+  function ricordaOggetto(dati) {
+    oggettoCorrente = { ...oggettoCorrente, ...dati };
+    try { sessionStorage.setItem('gls-oggetto', JSON.stringify(oggettoCorrente)); } catch { /* niente */ }
+  }
+  vista.addEventListener('input', (e) => {
+    const f = e.target.form;
+    if (f && f.matches('[data-guasto]') && e.target.name) ricordaOggetto({ [e.target.name]: e.target.value });
+  });
+
   vista.addEventListener('submit', (e) => {
-    if (!e.target.matches('[data-cerca-modello]')) return;
+    if (!e.target.matches('[data-guasto]')) return;
     e.preventDefault();
     const f = e.target;
-    const dati = { marca: f.marca.value.trim(), modello: f.modello.value.trim(), tipo: f.tipo.value.trim() };
-    if (!dati.marca || !dati.modello) return;
-    document.activeElement && document.activeElement.blur();
-    vai('#/risultati?' + new URLSearchParams(Object.entries(dati).filter(([, v]) => v)));
+    const azione = (e.submitter && e.submitter.dataset.azione) || 'soluzione';
+    const dati = {
+      tipo: f.tipo.value.trim(), marca: f.marca.value.trim(), modello: f.modello.value.trim(),
+      problema: f.problema.value.trim(), codice: f.codice.value.trim()
+    };
+    ricordaOggetto(dati);
+    if (document.activeElement) document.activeElement.blur();
+    if (azione === 'manuali') {
+      if (!dati.marca && !dati.modello && !dati.tipo) { mostraAvviso('Scrivi almeno marca e modello, o fotografa la targhetta.'); return; }
+      vai('#/risultati?' + new URLSearchParams(Object.entries({ marca: dati.marca, modello: dati.modello, tipo: dati.tipo }).filter(([, v]) => v)));
+    } else {
+      if (!dati.problema && !dati.codice) { mostraAvviso('Descrivi il problema (anche con il microfono) o scrivi il codice di errore.'); f.problema.focus(); return; }
+      vai('#/soluzione?' + new URLSearchParams(Object.entries(dati).filter(([, v]) => v)));
+    }
   });
 
   // ---------- Ricerca di manuali, guide e video (fase 2) ----------
@@ -517,17 +578,324 @@
     elenco.sort((a, b) => b.data.localeCompare(a.data));
     if (!elenco.length) return;
     box.innerHTML = `
-      <h2 class="titoletto">Ricerche recenti</h2>
+      <h2 class="titoletto">Ultime ricerche</h2>
       <div class="elenco-card">
         ${elenco.slice(0, 5).map((r) => {
           const d = r.domanda;
-          const nome = (r.risultato && r.risultato.prodotto && r.risultato.prodotto.nome) || d.testo || [d.marca, d.modello].join(' ');
           const q = new URLSearchParams(Object.entries(d).filter(([, v]) => v));
-          return `<a class="card compatta" href="#/risultati?${q}"><span class="icona piccola">${svg('orologio')}</span><span class="testo"><span class="tit">${esc(nome)}</span></span>${svg('freccia').replace('<svg', '<svg class="freccia"')}</a>`;
+          if (r.tipo === 'soluzione') {
+            const nome = (r.risultato && r.risultato.oggetto) || [d.marca, d.modello].join(' ') || 'Problema';
+            return `<a class="card compatta" href="#/soluzione?${q}"><span class="icona piccola">${svg('lampadina')}</span><span class="testo"><span class="tit">${esc(nome)}</span><span class="sotto">${esc(d.problema || d.codice || '')}</span></span>${svg('freccia').replace('<svg', '<svg class="freccia"')}</a>`;
+          }
+          const nome = (r.risultato && r.risultato.prodotto && r.risultato.prodotto.nome) || d.testo || [d.marca, d.modello].join(' ');
+          return `<a class="card compatta" href="#/risultati?${q}"><span class="icona piccola">${svg('documento')}</span><span class="testo"><span class="tit">${esc(nome)}</span><span class="sotto">Manuali e video</span></span>${svg('freccia').replace('<svg', '<svg class="freccia"')}</a>`;
         }).join('')}
       </div>`;
     // Tiene solo le 20 ricerche più recenti
     for (const vecchia of elenco.slice(20)) DB.elimina('ricerche', vecchia.id).catch(() => {});
+  }
+
+  // ---------- Chiamate al server ----------
+  async function chiedi(percorso, corpo, ms = 60000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const r = await fetch(GLS.worker + '/' + percorso, {
+        method: 'POST', signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...corpo, profilo: GLS.profilo })
+      });
+      let dati = {};
+      try { dati = await r.json(); } catch { /* niente */ }
+      if (!r.ok || dati.ok === false) throw new Error(dati.errore || 'Errore del server (' + r.status + ')');
+      return dati;
+    } catch (err) {
+      if (err.name === 'AbortError') throw new Error('Il server ci sta mettendo troppo: riprova.');
+      if (!navigator.onLine) throw new Error('Sei offline.');
+      if (err instanceof TypeError) throw new Error('Non riesco a collegarmi al server. Controlla la connessione e riprova.');
+      throw err;
+    } finally { clearTimeout(t); }
+  }
+
+  const inBase64 = (blob) => new Promise((ok, ko) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result).split(',')[1] || '');
+    r.onerror = () => ko(r.error);
+    r.readAsDataURL(blob);
+  });
+
+  // ---------- Microfono: registra, trascrive e compila ----------
+  const pannelloVoce = document.createElement('div');
+  pannelloVoce.className = 'voce';
+  pannelloVoce.hidden = true;
+  pannelloVoce.setAttribute('role', 'dialog');
+  pannelloVoce.setAttribute('aria-label', 'Registrazione vocale');
+  pannelloVoce.innerHTML = `
+    <div class="voce-box">
+      <span class="onde" aria-hidden="true"><span></span><span></span><span></span></span>
+      <p class="voce-titolo">Ti ascolto…</p>
+      <p class="voce-sotto">Parla pure, poi tocca <strong>Fatto</strong>.</p>
+      <button type="button" class="btn btn-accento btn-pieno" data-voce="fatto">Fatto</button>
+      <button type="button" class="btn btn-pieno" data-voce="annulla">Annulla</button>
+    </div>`;
+  document.body.appendChild(pannelloVoce);
+  let registrazione = null;
+
+  async function ascolta(pulsante) {
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      mostraAvviso('Questo telefono non permette di registrare la voce dall’app.');
+      return;
+    }
+    let flusso;
+    try {
+      flusso = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      mostraAvviso('Serve il permesso per il microfono: controlla nelle impostazioni del telefono.');
+      return;
+    }
+    const tipi = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+    const mime = tipi.find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+    const rec = new MediaRecorder(flusso, mime ? { mimeType: mime } : undefined);
+    const pezzi = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) pezzi.push(e.data); };
+    const fine = new Promise((ok) => { rec.onstop = ok; });
+    rec.start();
+    registrazione = { rec, flusso, annullata: false };
+    pannelloVoce.hidden = false;
+    pannelloVoce.querySelector('.voce-titolo').textContent = 'Ti ascolto…';
+    pannelloVoce.querySelector('.voce-sotto').innerHTML = 'Parla pure, poi tocca <strong>Fatto</strong>.';
+    pannelloVoce.querySelector('[data-voce="fatto"]').disabled = false;
+    const limite = setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, 45000);
+
+    await fine;
+    clearTimeout(limite);
+    flusso.getTracks().forEach((t) => t.stop());
+    const annullata = registrazione && registrazione.annullata;
+    registrazione = null;
+    if (annullata || !pezzi.length) { pannelloVoce.hidden = true; return; }
+
+    pannelloVoce.querySelector('.voce-titolo').textContent = 'Sto capendo…';
+    pannelloVoce.querySelector('.voce-sotto').textContent = 'Un attimo.';
+    pannelloVoce.querySelector('[data-voce="fatto"]').disabled = true;
+    try {
+      const audio = new Blob(pezzi, { type: rec.mimeType || mime || 'audio/mp4' });
+      const dati = await chiedi('transcribe', { audio: await inBase64(audio), mime: audio.type }, 45000);
+      pannelloVoce.hidden = true;
+      if (!dati.capito || !dati.testo) { mostraAvviso('Non ho capito bene: riprova parlando vicino al telefono.'); return; }
+      const destinazione = pulsante.dataset.microfono;
+      if (destinazione === 'problema') {
+        const campo = document.querySelector('[data-guasto] [name="problema"]');
+        if (campo) {
+          campo.value = (campo.value ? campo.value.trim() + ' ' : '') + dati.testo;
+          ricordaOggetto({ problema: campo.value });
+        }
+      } else {
+        const form = pulsante.closest('form');
+        if (form && form.q) {
+          form.q.value = dati.testo;
+          form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
+      }
+    } catch (err) {
+      pannelloVoce.hidden = true;
+      mostraAvviso(err.message);
+    }
+  }
+  pannelloVoce.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-voce]');
+    if (!b || !registrazione) { if (b && b.dataset.voce === 'annulla') pannelloVoce.hidden = true; return; }
+    if (b.dataset.voce === 'annulla') registrazione.annullata = true;
+    if (registrazione.rec.state === 'recording') registrazione.rec.stop();
+  });
+
+  // ---------- Foto della targhetta ----------
+  let fotoTarghetta = null; // ultima foto (per "Chiedi aiuto")
+
+  async function riduciFoto(file, lato = 1600) {
+    const img = await new Promise((ok, ko) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.onerror = () => ko(new Error('Non riesco ad aprire la foto'));
+      i.src = URL.createObjectURL(file);
+    });
+    const scala = Math.min(1, lato / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scala);
+    c.height = Math.round(img.naturalHeight * scala);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(img.src);
+    return new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.85));
+  }
+
+  async function leggiTarghetta(file) {
+    const box = document.getElementById('esito-targhetta');
+    if (!box) return;
+    box.innerHTML = `<div class="esito"><span class="rotella piccola" aria-hidden="true"></span> Leggo la targhetta…</div>`;
+    try {
+      const foto = await riduciFoto(file);
+      fotoTarghetta = foto;
+      const d = await chiedi('identify', { immagine: await inBase64(foto), mime: 'image/jpeg' }, 60000);
+      const form = document.querySelector('[data-guasto]');
+      if (!d.leggibile || (!d.marca && !d.modello)) {
+        box.innerHTML = `<div class="esito errore">${svg('attenzione')}<div><strong>Non riesco a leggerla bene.</strong><br>${esc(d.note || 'Riprova con più luce, senza riflessi e più vicino.')}</div></div>`;
+        return;
+      }
+      if (form) {
+        for (const k of ['tipo', 'marca', 'modello']) if (d[k]) form[k].value = d[k];
+      }
+      ricordaOggetto({ tipo: d.tipo || oggettoCorrente.tipo, marca: d.marca, modello: d.modello, seriale: d.seriale });
+      const extra = [d.seriale && `S/N ${d.seriale}`, d.anno && `Anno ${d.anno}`, ...(d.altri || [])].filter(Boolean).join(' · ');
+      box.innerHTML = `<div class="esito ok">${svg('fotocamera')}<div><strong>Ho letto: ${esc([d.marca, d.modello].filter(Boolean).join(' '))}</strong>${d.tipo ? ` (${esc(d.tipo)})` : ''}<br><span>${esc(extra)}</span><br><span>Controlla i dati qui sotto e correggili se serve.</span></div></div>`;
+    } catch (err) {
+      box.innerHTML = `<div class="esito errore">${svg('attenzione')}<div>${esc(err.message)}</div></div>`;
+    }
+  }
+
+  // ---------- Soluzione (diagnosi con IA) ----------
+  async function caricaSoluzione() {
+    const p = parametri();
+    const domanda = {};
+    for (const k of ['tipo', 'marca', 'modello', 'problema', 'codice']) if (p.get(k)) domanda[k] = p.get(k);
+    const box = document.getElementById('soluzione');
+    const id = 'soluzione|' + [domanda.tipo, domanda.marca, domanda.modello, domanda.problema, domanda.codice, GLS.profilo].map((x) => (x || '').toLowerCase().trim()).join('|');
+    const salvataP = DB.leggi('ricerche', id).catch(() => null);
+    try {
+      const d = await chiedi('diagnose', { prodotto: { tipo: domanda.tipo, marca: domanda.marca, modello: domanda.modello }, problema: domanda.problema, codice: domanda.codice }, 70000);
+      DB.salva('ricerche', { id, tipo: 'soluzione', domanda, risultato: d, data: new Date().toISOString() }).catch(() => {});
+      if (document.getElementById('soluzione') === box) disegnaSoluzione(box, d, domanda);
+    } catch (err) {
+      if (document.getElementById('soluzione') !== box) return;
+      const salvata = await salvataP;
+      if (salvata) { disegnaSoluzione(box, salvata.risultato, domanda); mostraAvviso('Ti mostro la risposta salvata.'); return; }
+      box.innerHTML = `
+        <div class="vuoto">
+          <span class="icona">${svg('attenzione')}</span>
+          <h2>Non ci sono riuscito</h2>
+          <p>${esc(err.message)}</p>
+          <button type="button" class="btn btn-accento" data-riprova>Riprova</button>
+        </div>`;
+    }
+  }
+
+  const PROB = { alta: 'Probabile', media: 'Possibile', bassa: 'Meno probabile' };
+
+  function disegnaSoluzione(box, d, domanda) {
+    const prodotto = d.prodottoDedotto || d.prodotto || {};
+    const nome = d.oggetto || [prodotto.marca, prodotto.modello].filter(Boolean).join(' ') || 'Il tuo oggetto';
+    const linkManuali = '#/risultati?' + new URLSearchParams(Object.entries({ marca: prodotto.marca, modello: prodotto.modello, tipo: prodotto.tipo }).filter(([, v]) => v));
+    const video = (d.video || []).slice(0, GLS.profilo === 'semplice' ? 3 : 6).map((v) => `
+      <li class="risultato video">
+        <a href="${esc(v.url)}" target="_blank" rel="noopener">
+          <span class="anteprima">${v.immagine ? `<img src="${esc(v.immagine)}" alt="Anteprima del video: ${esc(v.titolo)}" loading="lazy" width="320" height="180">` : svg('play')}${v.durata ? `<span class="durata">${esc(v.durata)}</span>` : ''}</span>
+          <span class="testo"><span class="tit">${esc(v.titolo)}</span><span class="sotto">${esc(v.canale || '')}</span></span>
+        </a>
+      </li>`).join('');
+
+    box.innerHTML = `
+      <div class="prodotto"><span class="icona">${svg('lampadina')}</span><div><h2>${esc(nome)}</h2>${domanda.problema ? `<p class="problema">"${esc(domanda.problema)}"</p>` : ''}</div></div>
+
+      ${d.riassunto ? `<p class="riassunto">${esc(d.riassunto)}</p>` : ''}
+
+      ${d.codiceErrore ? `<div class="riquadro codice"><strong>Codice ${esc(d.codiceErrore.codice)}</strong><p>${esc(d.codiceErrore.significato)}</p></div>` : ''}
+
+      ${(d.sicurezza || []).length ? `
+        <div class="riquadro sicurezza" role="note">
+          <h2>${svg('attenzione')} Sicurezza</h2>
+          <ul>${d.sicurezza.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+        </div>` : ''}
+
+      ${d.professionista ? `
+        <div class="riquadro professionista">
+          <h2>Chiama ${esc(d.professionista.chi || 'un professionista')}</h2>
+          <p>${esc(d.professionista.perche)}</p>
+        </div>` : ''}
+
+      ${(d.cause || []).length ? `
+        <h2 class="titoletto">Cause possibili</h2>
+        <ul class="cause">
+          ${d.cause.map((c) => `
+            <li><span class="etichetta prob-${esc(c.probabilita)}">${esc(PROB[c.probabilita] || c.probabilita || '')}</span>
+              <strong>${esc(c.causa)}</strong>${c.verifica ? `<p>${esc(c.verifica)}</p>` : ''}</li>`).join('')}
+        </ul>` : ''}
+
+      ${(d.passi || []).length ? `
+        <h2 class="titoletto">Cosa fare, passo passo</h2>
+        <ol class="passi">
+          ${d.passi.map((s) => `
+            <li><strong>${esc(s.titolo)}</strong>${s.dettaglio ? `<p>${esc(s.dettaglio)}</p>` : ''}${s.attenzione ? `<p class="attenzione">${svg('attenzione')} ${esc(s.attenzione)}</p>` : ''}</li>`).join('')}
+        </ol>` : ''}
+
+      <dl class="info">
+        ${d.difficolta ? `<div><dt>Difficoltà</dt><dd>${esc(d.difficolta)}</dd></div>` : ''}
+        ${d.tempo ? `<div><dt>Tempo</dt><dd>${esc(d.tempo)}</dd></div>` : ''}
+        ${d.costo ? `<div><dt>Costo indicativo</dt><dd>${esc(d.costo)}</dd></div>` : ''}
+        <div><dt>Affidabilità</dt><dd>${esc(d.affidabilita || '—')}</dd></div>
+      </dl>
+      ${d.notaAffidabilita ? `<p class="nota">${esc(d.notaAffidabilita)}</p>` : ''}
+
+      ${(d.ricambi || []).length ? `
+        <h2 class="titoletto">Ricambi</h2>
+        <ul class="risultati">
+          ${d.ricambi.map((r) => `
+            <li class="ricambio">
+              <div><strong>${esc(r.nome)}</strong>${r.codice ? `<span class="sotto">Codice: ${esc(r.codice)}</span>` : ''}</div>
+              <div class="riga-link">
+                <a class="btn" href="${esc(r.link.google)}" target="_blank" rel="noopener">Google</a>
+                <a class="btn" href="${esc(r.link.amazon)}" target="_blank" rel="noopener">Amazon</a>
+                <a class="btn" href="${esc(r.link.ebay)}" target="_blank" rel="noopener">eBay</a>
+              </div>
+            </li>`).join('')}
+        </ul>
+        <p class="nota">Prima di comprare, controlla che il codice del pezzo corrisponda al tuo modello.</p>` : ''}
+
+      ${(d.domande || []).length ? `
+        <h2 class="titoletto">Per capire meglio</h2>
+        <ul class="domande">${d.domande.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+        <p class="nota">Se sai rispondere, aggiungi i dettagli alla descrizione e riprova.</p>` : ''}
+
+      ${(d.fonti || []).length ? `
+        <h2 class="titoletto">Fonti</h2>
+        <ul class="risultati">${d.fonti.map((f) => `
+          <li class="risultato"><a href="${esc(f.url)}" target="_blank" rel="noopener"><span class="icona piccola">${svg('esterno')}</span><span class="testo"><span class="tit">${esc(f.titolo || f.url)}</span><span class="sotto">${esc((() => { try { return new URL(f.url).hostname.replace(/^www\./, ''); } catch { return ''; } })())}</span></span></a></li>`).join('')}
+        </ul>` : ''}
+
+      ${video ? `<h2 class="titoletto">Video utili</h2><ul class="risultati">${video}</ul>` : ''}
+
+      <div class="riga-pulsanti" style="margin-top:22px">
+        <button type="button" class="btn btn-accento btn-pieno" data-chiedi-aiuto>${svg('whatsapp')} Chiedi aiuto</button>
+        ${prodotto.marca || prodotto.modello ? `<a class="btn btn-pieno" href="${esc(linkManuali)}">${svg('documento')} Manuali e video del modello</a>` : ''}
+        <a class="btn btn-pieno" href="#/guasto">Modifica la descrizione</a>
+      </div>
+      <p class="nota">${esc(d.fonte || '')}. Le risposte dell'IA possono sbagliare: in caso di dubbio chiedi a un tecnico.</p>`;
+
+    box.dataset.riepilogo = JSON.stringify({ nome, domanda, riassunto: d.riassunto, codice: d.codiceErrore, seriale: oggettoCorrente.seriale || '' });
+  }
+
+  async function chiediAiuto() {
+    const box = document.getElementById('soluzione');
+    let r = {};
+    try { r = JSON.parse(box.dataset.riepilogo || '{}'); } catch { /* niente */ }
+    const d = r.domanda || {};
+    const righe = [
+      'Ciao, mi daresti una mano? 🙏',
+      `Oggetto: ${[d.tipo, d.marca, d.modello].filter(Boolean).join(' ') || r.nome || ''}`,
+      r.seriale ? `Seriale: ${r.seriale}` : '',
+      d.problema ? `Problema: ${d.problema}` : '',
+      d.codice ? `Codice errore: ${d.codice}` : '',
+      r.riassunto ? `GLS Help dice: ${r.riassunto}` : ''
+    ].filter(Boolean);
+    const testo = righe.join('\n');
+    try {
+      const file = fotoTarghetta ? new File([fotoTarghetta], 'targhetta.jpg', { type: 'image/jpeg' }) : null;
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ text: testo, files: [file] });
+        return;
+      }
+      if (navigator.share) { await navigator.share({ text: testo }); return; }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+    window.open('https://wa.me/?text=' + encodeURIComponent(testo), '_blank', 'noopener');
   }
 
   // ---------- Preferiti ----------
@@ -569,6 +937,7 @@
   vista.addEventListener('click', async (e) => {
     const riprova = e.target.closest('[data-riprova]');
     if (riprova) { mostra(); return; }
+    if (e.target.closest('[data-chiedi-aiuto]')) { chiediAiuto(); return; }
 
     const togli = e.target.closest('[data-togli]');
     if (togli) {
