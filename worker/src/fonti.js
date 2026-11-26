@@ -68,6 +68,20 @@ export async function cercaBingHtml(q) {
 
 const fonte = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
 
+// ---------- Tavily: motore di ricerca per app di IA (1000 ricerche/mese gratis) ----------
+export async function cercaTavily(env, query, { max = 8 } = {}) {
+  if (!env.TAVILY_API_KEY) return [];
+  const r = await conTempo(fetch('https://api.tavily.com/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.TAVILY_API_KEY}` },
+    body: JSON.stringify({ query, max_results: max, search_depth: 'basic', include_answer: false })
+  }), 12000);
+  if (!r.ok) throw new Error(`Tavily ha risposto ${r.status}`);
+  const d = await r.json();
+  return (d.results || []).map((x) => ({ url: soloHttps(x.url), titolo: testoSemplice(x.title), estratto: testoSemplice(x.content).slice(0, 300) }))
+    .filter((x) => x.url);
+}
+
 // ---------- Manuali ----------
 const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -151,8 +165,27 @@ Massimo 6, solo indirizzi visti nei risultati.`, { ricercaGoogle: true });
   const marcaOk = marca || prodotto.marca || '';
   const modelloOk = modello || prodotto.modello || '';
 
-  // 2. Candidati: archivi, pagine proposte da Gemini, risultati di Bing con il codice del modello
-  const candidati = [...daGoogle];
+  // 1b. Ricerca web vera (Tavily), se c'è la chiave: risultati reali che contengono il modello
+  const daWeb = [];
+  if (env.TAVILY_API_KEY && (modelloOk || testo)) {
+    const base = [marcaOk, modelloOk].filter(Boolean).join(' ') || testo;
+    const pezzo = compatto(modelloOk).replace(/^(surecolor|sc)/, '').slice(0, 7);
+    const risultati = (await Promise.allSettled([
+      cercaTavily(env, `${base} manuale istruzioni pdf`),
+      cercaTavily(env, `${base} user manual pdf`)
+    ])).flatMap((x) => (x.status === 'fulfilled' ? x.value : []));
+    const negozi = /amazon\.|ebay\.|aliexpress|idealo|trovaprezzi|youtube\.com|facebook\.com|instagram/i;
+    for (const x of risultati) {
+      const testoRis = compatto(x.titolo + ' ' + x.url + ' ' + x.estratto);
+      if (negozi.test(x.url)) continue;
+      if (pezzo && !testoRis.includes(pezzo)) continue;
+      if (!/manual|istruzion|guida|guide|pdf|support|download|libretto|handbuch/i.test(x.titolo + ' ' + x.url)) continue;
+      daWeb.push({ titolo: x.titolo || 'Manuale', url: x.url, lingua: /lang=it|\/it[_/-]|italian|italiano|\.it\//i.test(x.url + x.titolo) ? 'it' : '', genere: /support|download/i.test(x.url) ? 'supporto' : 'utente', giaVerificato: true });
+    }
+  }
+
+  // 2. Candidati: risultati web, archivi, pagine proposte da Gemini, risultati di Bing con il codice del modello
+  const candidati = [...daGoogle, ...daWeb];
   for (const a of indirizziArchivi(marcaOk, modelloOk)) candidati.push({ ...a, senzaRedirect: true });
   const marcaCompatta = compatto(marcaOk);
   for (const p of (Array.isArray(dati.pagine) ? dati.pagine : []).slice(0, 5)) {

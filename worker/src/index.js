@@ -58,7 +58,7 @@ async function chiaveCache(dati) {
   const testo = JSON.stringify(dati).toLowerCase();
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(testo));
   const hex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  return new Request(`https://cache.gls-help.local/search/v2/${hex}`);
+  return new Request(`https://cache.gls-help.local/search/v3/${hex}`);
 }
 
 // ---------- search: manuali, guide iFixit e video da marca e modello ----------
@@ -77,7 +77,7 @@ async function cerca(request, env, ctx) {
 
   // Stessa ricerca già fatta di recente: risposta salvata (non consuma quote)
   const cache = caches.default;
-  const chiave = await chiaveCache(domanda);
+  const chiave = await chiaveCache({ ...domanda, web: Boolean(env.TAVILY_API_KEY) });
   const salvata = await cache.match(chiave);
   if (salvata) return [{ ...(await salvata.json()), daCache: true }, 200];
 
