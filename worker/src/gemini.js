@@ -1,35 +1,49 @@
-// Chiamate all'API di Gemini (piano gratuito).
-// Nota: la "ricerca Google integrata" di Gemini NON è nel piano gratuito (errore 429),
-// per questo le ricerche sul web le fa il server (vedi fonti.js).
+// Chiamate all'API di Gemini.
+// Nota: la "ricerca Google integrata" di Gemini NON è nel piano gratuito (errore 429).
+// Il server la prova comunque: se un giorno si attiva la fatturazione su Google AI Studio,
+// funziona subito senza cambiare codice; finché dà 429 viene saltata per un'ora.
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
-// Prima il modello indicato nelle impostazioni, poi le alternative se non esiste più
-const MODELLI_RISERVA = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest'];
+const MODELLI_VELOCI = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest'];
+const MODELLI_BRAVI = ['gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
 
-export async function chiediGemini(env, prompt, { ricercaGoogle = false, json = false, temperatura = 0.2 } = {}) {
+let ricercaGoogleBloccataFino = 0;
+export const ricercaGoogleDisponibile = () => Date.now() > ricercaGoogleBloccataFino;
+
+/**
+ * @param parti testo (stringa) oppure elenco di parti Gemini ({text} / {inline_data})
+ * @param opzioni.qualita 'veloce' (predefinito) o 'brava' (per diagnosi e foto)
+ */
+export async function chiediGemini(env, parti, { ricercaGoogle = false, json = false, temperatura = 0.2, qualita = 'veloce' } = {}) {
   if (!env.GEMINI_API_KEY) throw new Error('Chiave Gemini mancante');
-  const modelli = [...new Set([env.GEMINI_MODELLO, ...MODELLI_RISERVA].filter(Boolean))];
+  if (ricercaGoogle && !ricercaGoogleDisponibile()) throw new Error('Ricerca Google di Gemini non disponibile (piano gratuito)');
+
+  const elenco = qualita === 'brava' ? MODELLI_BRAVI : MODELLI_VELOCI;
+  const modelli = [...new Set([qualita === 'veloce' ? env.GEMINI_MODELLO : null, ...elenco].filter(Boolean))];
   const body = {
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts: typeof parti === 'string' ? [{ text: parti }] : parti }],
     generationConfig: { temperature: temperatura }
   };
   if (ricercaGoogle) body.tools = [{ google_search: {} }];
   if (json && !ricercaGoogle) body.generationConfig.responseMimeType = 'application/json';
 
   let ultimoErrore;
-  for (const modello of modelli) {
+  for (const modello of (ricercaGoogle ? modelli.slice(0, 1) : modelli)) {
     const r = await fetch(`${BASE}${modello}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
       body: JSON.stringify(body)
     });
     if (r.status === 404) { ultimoErrore = new Error(`Modello ${modello} non disponibile`); continue; }
-    if (r.status === 503 || r.status === 500) { ultimoErrore = new Error(`Gemini è sovraccarico in questo momento (${modello}): riprova tra poco`); continue; }
+    if (r.status === 503 || r.status === 500) { ultimoErrore = new Error('Gemini è sovraccarico in questo momento: riprova tra poco'); continue; }
     if (r.status === 429) {
-      // Quota del modello finita (o assente): si prova il modello successivo
       let motivo = '';
       try { motivo = ((await r.json()).error || {}).message || ''; } catch { /* niente */ }
-      ultimoErrore = new Error(`Quota gratuita di Gemini esaurita per ora (${modello}): ${motivo.split('\n')[0].slice(0, 220)}`);
+      if (ricercaGoogle) {
+        ricercaGoogleBloccataFino = Date.now() + 60 * 60 * 1000;
+        throw new Error('Ricerca Google di Gemini non disponibile (piano gratuito)');
+      }
+      ultimoErrore = new Error(`Quota gratuita di Gemini esaurita per ora: riprova tra qualche minuto. ${motivo.split('\n')[0].slice(0, 120)}`);
       continue;
     }
     if (!r.ok) throw new Error(`Gemini ha risposto ${r.status}: ${(await r.text()).slice(0, 200)}`);

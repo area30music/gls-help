@@ -1,16 +1,13 @@
 // Server di GLS Help (Cloudflare Worker).
 import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese } from './fonti.js';
+import { trascrivi, identifica, diagnostica } from './ia.js';
 
 const VERSIONE = '__VERSIONE__';
 
 // Endpoint previsti e fase in cui arrivano
 const IN_ARRIVO = {
-  identify: 3,
-  diagnose: 4,
   howto: 5,
-  'error-code': 4,
   receipt: 6,
-  transcribe: 3,
   'push/subscribe': 6,
   maintenance: 6
 };
@@ -44,8 +41,8 @@ function rispondi(dati, stato, origine) {
 
 // ---------- Limite di richieste (per restare nella quota gratuita) ----------
 const contatori = new Map();
-function troppeRichieste(request, max = 20, finestraMs = 10 * 60 * 1000) {
-  const ip = request.headers.get('CF-Connecting-IP') || 'sconosciuto';
+function troppeRichieste(request, max = 20, finestraMs = 10 * 60 * 1000, tipo = 'search') {
+  const ip = tipo + ':' + (request.headers.get('CF-Connecting-IP') || 'sconosciuto');
   const ora = Date.now();
   const voce = contatori.get(ip);
   if (!voce || ora - voce.inizio > finestraMs) { contatori.set(ip, { inizio: ora, n: 1 }); return false; }
@@ -178,6 +175,24 @@ export default {
         return rispondi(dati, stato, origine);
       } catch (e) {
         return rispondi({ ok: false, errore: 'Errore del server: ' + e.message }, 500, origine);
+      }
+    }
+
+    // Voce, foto della targhetta, diagnosi del guasto e codici di errore
+    const funzioni = { transcribe: [trascrivi, 40], identify: [identifica, 20], diagnose: [diagnostica, 20], 'error-code': [diagnostica, 20] };
+    if (percorso in funzioni) {
+      if (request.method !== 'POST') return rispondi({ ok: false, errore: 'Usa POST' }, 405, origine);
+      const [funzione, max] = funzioni[percorso];
+      if (troppeRichieste(request, max, 10 * 60 * 1000, percorso)) {
+        return rispondi({ ok: false, errore: 'Troppe richieste in poco tempo: riprova tra qualche minuto' }, 429, origine);
+      }
+      let corpo;
+      try { corpo = await request.json(); } catch { return rispondi({ ok: false, errore: 'Richiesta non valida' }, 400, origine); }
+      try {
+        const dati = await funzione(env, corpo);
+        return rispondi({ ok: true, ...dati }, 200, origine);
+      } catch (e) {
+        return rispondi({ ok: false, errore: e.message }, 502, origine);
       }
     }
 

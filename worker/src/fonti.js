@@ -1,5 +1,5 @@
 // Ricerca di manuali (archivi + Gemini + Bing, con controllo dei link), guide iFixit e video YouTube.
-import { chiediGemini, leggiJSON } from './gemini.js';
+import { chiediGemini, leggiJSON, ricercaGoogleDisponibile } from './gemini.js';
 
 const ATTESA_MS = 6000;
 
@@ -21,6 +21,15 @@ function soloHttps(url) {
     const u = new URL(url);
     if (u.protocol === 'http:') u.protocol = 'https:';
     return u.protocol === 'https:' ? u.toString() : null;
+  } catch { return null; }
+}
+
+// I link delle fonti di Google passano da un indirizzo di reindirizzamento: lo risolviamo
+async function risolviReindirizzamento(url) {
+  if (!/vertexaisearch\.cloud\.google\.com\/grounding-api-redirect/.test(url)) return url;
+  try {
+    const r = await conTempo(fetch(url, { method: 'HEAD', redirect: 'manual' }), 4000);
+    return r.headers.get('Location') || null;
   } catch { return null; }
 }
 
@@ -65,13 +74,16 @@ const slug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-
 const compatto = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // La pagina esiste davvero e parla di quel modello?
-async function paginaValida(url, modello, { senzaRedirect = false } = {}) {
+async function paginaValida(url, modello, { senzaRedirect = false, sitoUfficiale = false, giaVerificato = false } = {}) {
   try {
     const r = await conTempo(fetch(url, {
       redirect: senzaRedirect ? 'manual' : 'follow',
       headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8' }
     }), 6000);
+    // Alcuni siti ufficiali bloccano i controlli automatici (403): la pagina esiste, si tiene
+    if ((r.status === 403 || r.status === 401) && (sitoUfficiale || giaVerificato)) { try { await r.body?.cancel(); } catch { /* */ } return true; }
     if (r.status !== 200) { try { await r.body?.cancel(); } catch { /* */ } return false; }
+    if (giaVerificato || compatto(url).includes(compatto(modello).slice(0, 7))) { try { await r.body?.cancel(); } catch { /* */ } return true; }
     const tipo = r.headers.get('Content-Type') || '';
     if (/pdf/i.test(tipo)) { try { await r.body?.cancel(); } catch { /* */ } return true; }
     const pezzo = compatto(modello).slice(0, 7);
@@ -110,10 +122,29 @@ Rispondi SOLO con JSON:
 {"prodotto":{"marca":"","modello":"","tipo":"","nome":""},"ricerca_inglese":"","pagine":[{"titolo":"titolo breve in italiano","url":"https://...","lingua":"it","genere":"supporto"}]}
 "genere" è uno tra: utente, installazione, servizio, ricambi, supporto.`;
 
+  // 0. Se disponibile (piano a consumo), la ricerca Google di Gemini trova i manuali veri
+  const daGoogle = [];
+  if (ricercaGoogleDisponibile()) {
+    try {
+      const g = await chiediGemini(env, `Cerca con Google i manuali (PDF o pagine di download) di questo prodotto:
+${descrizione}
+Preferisci il sito ufficiale del produttore e i manuali in italiano. Rispondi SOLO con JSON:
+{"manuali":[{"titolo":"titolo breve in italiano","url":"https://...","lingua":"it","genere":"utente"}]}
+Massimo 6, solo indirizzi visti nei risultati.`, { ricercaGoogle: true });
+      let elencoG = [];
+      try { elencoG = leggiJSON(g.testo).manuali || []; } catch { /* niente */ }
+      if (!elencoG.length) elencoG = g.fonti.map((x) => ({ titolo: x.titolo, url: x.url, genere: 'utente' }));
+      for (const m of elencoG.slice(0, 6)) {
+        const url = soloHttps(await risolviReindirizzamento(m.url || ''));
+        if (url) daGoogle.push({ titolo: m.titolo || 'Manuale', url, lingua: m.lingua || '', genere: m.genere || 'utente', giaVerificato: true });
+      }
+    } catch { /* piano gratuito: si prosegue senza */ }
+  }
+
   let dati = {};
   let avviso = '';
   try {
-    dati = leggiJSON((await chiediGemini(env, prompt, { json: true })).testo) || {};
+    dati = leggiJSON((await chiediGemini(env, prompt, { json: true, qualita: 'brava' })).testo) || {};
   } catch (e) { avviso = e.message; }
 
   const prodotto = dati.prodotto || {};
@@ -121,11 +152,14 @@ Rispondi SOLO con JSON:
   const modelloOk = modello || prodotto.modello || '';
 
   // 2. Candidati: archivi, pagine proposte da Gemini, risultati di Bing con il codice del modello
-  const candidati = [];
+  const candidati = [...daGoogle];
   for (const a of indirizziArchivi(marcaOk, modelloOk)) candidati.push({ ...a, senzaRedirect: true });
-  for (const p of (Array.isArray(dati.pagine) ? dati.pagine : []).slice(0, 4)) {
+  const marcaCompatta = compatto(marcaOk);
+  for (const p of (Array.isArray(dati.pagine) ? dati.pagine : []).slice(0, 5)) {
     const url = soloHttps(p.url);
-    if (url) candidati.push({ titolo: p.titolo || 'Pagina di supporto', url, lingua: p.lingua || '', genere: p.genere || 'supporto' });
+    if (!url) continue;
+    const sitoUfficiale = marcaCompatta.length > 2 && compatto(fonte(url)).includes(marcaCompatta);
+    candidati.push({ titolo: p.titolo || 'Pagina di supporto', url, lingua: p.lingua || '', genere: p.genere || 'supporto', sitoUfficiale });
   }
   if (modelloOk) {
     try {
@@ -143,7 +177,7 @@ Rispondi SOLO con JSON:
     if (!c.url) return false;
     const k = c.url.replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase();
     return !visti.has(k) && visti.add(k);
-  }).slice(0, 10);
+  }).slice(0, 14);
   const controllati = await Promise.all(unici.map(async (c) => ((await paginaValida(c.url, modelloOk, c)) ? c : null)));
 
   return {
