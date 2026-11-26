@@ -22,7 +22,7 @@ function origineAmmessa(request, env) {
   return ammesse.includes(origine) ? origine : null;
 }
 
-function rispondi(dati, stato, origine) {
+function intestazioni(origine) {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
@@ -35,7 +35,11 @@ function rispondi(dati, stato, origine) {
     headers['Access-Control-Allow-Headers'] = 'Content-Type';
     headers['Access-Control-Max-Age'] = '86400';
   }
-  return new Response(JSON.stringify(dati), { status: stato, headers });
+  return headers;
+}
+
+function rispondi(dati, stato, origine) {
+  return new Response(JSON.stringify(dati), { status: stato, headers: intestazioni(origine) });
 }
 
 // ---------- Limite di richieste (per restare nella quota gratuita) ----------
@@ -201,7 +205,7 @@ export default {
       return rispondi({ ok: false, errore: 'Origine non autorizzata' }, 403, null);
     }
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: rispondi({}, 204, origine).headers });
+      return new Response(null, { status: 204, headers: intestazioni(origine) });
     }
 
     if (percorso === 'search') {
