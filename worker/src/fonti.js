@@ -83,12 +83,14 @@ async function paginaValida(url, modello, { senzaRedirect = false } = {}) {
 
 // Archivi di manuali con indirizzi prevedibili (se il modello non c'è, rispondono con un reindirizzamento)
 function indirizziArchivi(marca, modello) {
-  const m = slug(marca); const mo = slug(modello);
-  if (!m || !mo) return [];
-  return [
+  const mo = slug(modello);
+  if (!slug(marca) || !mo) return [];
+  // La marca può essere scritta con o senza trattino (es. "de-longhi" o "delonghi")
+  const marche = [...new Set([slug(marca), slug(marca).replace(/-/g, '')])];
+  return marche.flatMap((m) => [
     { titolo: "Manuale d'uso in italiano", url: `https://www.manualeitaliano.it/${m}/${mo}/manuale`, lingua: 'it', genere: 'utente' },
     { titolo: "Manuale d'uso (archivio internazionale)", url: `https://www.manua.ls/${m}/${mo}/manual`, lingua: 'en', genere: 'utente' }
-  ];
+  ]);
 }
 
 export async function cercaManuali(env, { testo, marca, modello, tipo }) {
