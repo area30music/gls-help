@@ -1,9 +1,9 @@
 // Archivio sul telefono (IndexedDB). I dati restano solo su questo dispositivo.
 (function () {
   const NOME = 'gls-help';
-  const VERSIONE_DB = 1;
+  const VERSIONE_DB = 2;
   // Elenchi di dati dell'app
-  const ARCHIVI = ['oggetti', 'interventi', 'scontrini', 'manutenzioni', 'guide', 'preferiti', 'impostazioni'];
+  const ARCHIVI = ['oggetti', 'interventi', 'scontrini', 'manutenzioni', 'guide', 'preferiti', 'impostazioni', 'ricerche'];
 
   let aperto = null;
 

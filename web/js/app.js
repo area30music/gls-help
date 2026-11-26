@@ -32,6 +32,11 @@
     esporta: '<path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
     importa: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
     piu: '<path d="M12 5v14M5 12h14"/>',
+    documento: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+    play: '<rect x="2.5" y="5" width="19" height="14" rx="4"/><path d="m10 9 5 3-5 3z"/>',
+    esterno: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    stellaPiena: '<path fill="currentColor" d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+    orologio: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     ingranaggio: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     persona: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     casa: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
@@ -65,10 +70,10 @@
       </form>`;
   }
 
-  function testataSezione(titolo) {
+  function testataSezione(titolo, indietro) {
     return `
       <header class="testata-sezione">
-        <a class="indietro" href="#/" aria-label="Torna alla Home">${svg('indietro')}</a>
+        <a class="indietro" href="${indietro || '#/'}" aria-label="Indietro">${svg('indietro')}</a>
         <h1>${esc(titolo)}</h1>
       </header>`;
   }
@@ -152,14 +157,48 @@
       titolo: 'Ho un guasto',
       html: () => `
         ${testataSezione('Ho un guasto')}
-        ${barraRicerca('Es. lavatrice non scarica', 'Descrivi il guasto')}
+        ${barraRicerca('Es. lavatrice Samsung WW90', 'Cerca manuali, guide e video')}
+
+        <form class="modulo" data-cerca-modello>
+          <h2>Manuali, guide e video</h2>
+          <p>Scrivi marca e modello: li trovi sulla targhetta dell'oggetto.</p>
+          <label><span>Che oggetto è? <em>(facoltativo)</em></span>
+            <input name="tipo" autocomplete="off" placeholder="Es. lavatrice" enterkeyhint="next">
+          </label>
+          <label><span>Marca</span>
+            <input name="marca" autocomplete="off" placeholder="Es. Samsung" required enterkeyhint="next">
+          </label>
+          <label><span>Modello</span>
+            <input name="modello" autocomplete="off" autocapitalize="characters" placeholder="Es. WW90T534DAW" required enterkeyhint="search">
+          </label>
+          <button type="submit" class="btn btn-accento btn-pieno">${svg('cerca')} Cerca</button>
+        </form>
+
+        <div id="recenti"></div>
+
+        <h2 class="titoletto">In arrivo</h2>
         <div class="elenco-card">
           ${cardAzione('fotocamera', 'Fotografa la targhetta', 'Leggo marca, modello e numero di serie', 'data-presto="3"')}
           ${cardAzione('fumetto', 'Descrivi il problema', 'A parole o con la voce', 'data-presto="4"')}
           ${cardAzione('codice', 'Codice errore', 'Cosa significa il codice sul display', 'data-presto="4"')}
           ${cardAzione('ricambio', 'Ricambi', 'Codice del pezzo e dove cercarlo', 'data-presto="4"')}
         </div>
-        <p class="nota">Manuali, guide e video arrivano nella fase 2; la diagnosi completa nella fase 4.</p>`
+        <p class="nota">La lettura della targhetta arriva nella fase 3; la diagnosi completa nella fase 4.</p>`,
+      dopo: mostraRecenti
+    },
+
+    risultati: {
+      titolo: 'Risultati',
+      html: () => `
+        ${testataSezione('Risultati', '#/guasto')}
+        <div id="risultati">
+          <div class="caricamento" role="status">
+            <span class="rotella" aria-hidden="true"></span>
+            <p>Cerco manuali, guide e video…</p>
+            <p class="nota">Può servire qualche secondo.</p>
+          </div>
+        </div>`,
+      dopo: caricaRisultati
     },
 
     'come-si-fa': {
@@ -192,11 +231,8 @@
       titolo: 'Preferiti',
       html: () => `
         <header class="testata-sezione"><h1>Preferiti</h1></header>
-        <div class="vuoto">
-          <span class="icona">${svg('stella')}</span>
-          <h2>Nessun preferito</h2>
-          <p>Le guide e le soluzioni che salvi con la stella appariranno qui, anche senza internet.</p>
-        </div>`
+        <div id="elenco-preferiti"></div>`,
+      dopo: mostraPreferiti
     },
 
     backup: {
@@ -337,7 +373,224 @@
     const q = e.target.q.value.trim();
     if (!q) return;
     e.target.q.blur();
-    mostraAvviso('La ricerca di manuali e video arriva nella fase 2.');
+    vai('#/risultati?' + new URLSearchParams({ testo: q }));
+  });
+  vista.addEventListener('submit', (e) => {
+    if (!e.target.matches('[data-cerca-modello]')) return;
+    e.preventDefault();
+    const f = e.target;
+    const dati = { marca: f.marca.value.trim(), modello: f.modello.value.trim(), tipo: f.tipo.value.trim() };
+    if (!dati.marca || !dati.modello) return;
+    document.activeElement && document.activeElement.blur();
+    vai('#/risultati?' + new URLSearchParams(Object.entries(dati).filter(([, v]) => v)));
+  });
+
+  // ---------- Ricerca di manuali, guide e video (fase 2) ----------
+  const parametri = () => new URLSearchParams((location.hash.split('?')[1]) || '');
+  const LINGUE = { it: 'Italiano', en: 'Inglese', de: 'Tedesco', fr: 'Francese', es: 'Spagnolo' };
+  const GENERI = { utente: "Manuale d'uso", installazione: 'Installazione', servizio: 'Manuale di servizio', ricambi: 'Ricambi', supporto: 'Supporto', 'scheda tecnica': 'Scheda tecnica' };
+
+  function chiaveRicerca(d) {
+    return ['marca', 'modello', 'tipo', 'testo'].map((k) => (d[k] || '').toLowerCase().trim()).join('|');
+  }
+
+  async function caricaRisultati() {
+    const p = parametri();
+    const domanda = { testo: p.get('testo') || '', marca: p.get('marca') || '', modello: p.get('modello') || '', tipo: p.get('tipo') || '' };
+    const box = document.getElementById('risultati');
+    const id = chiaveRicerca(domanda);
+    let salvata = null;
+    try { salvata = await DB.leggi('ricerche', id); } catch { /* niente */ }
+
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 45000);
+      const r = await fetch(GLS.worker + '/search', {
+        method: 'POST', signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...domanda, profilo: GLS.profilo })
+      });
+      clearTimeout(t);
+      const dati = await r.json();
+      if (!r.ok || !dati.ok) throw new Error(dati.errore || 'Errore ' + r.status);
+      const voce = { id, domanda, risultato: dati, data: new Date().toISOString() };
+      DB.salva('ricerche', voce).catch(() => {});
+      if (document.getElementById('risultati') === box) disegnaRisultati(box, dati);
+    } catch (err) {
+      if (document.getElementById('risultati') !== box) return;
+      if (salvata) {
+        disegnaRisultati(box, salvata.risultato);
+        mostraAvviso('Senza connessione: ti mostro i risultati salvati.');
+      } else {
+        const msg = err.name === 'AbortError' ? 'La ricerca ci sta mettendo troppo.'
+          : !navigator.onLine ? 'Sei offline.'
+            : err instanceof TypeError ? 'Non riesco a collegarmi al server. Controlla la connessione e riprova.'
+              : err.message;
+        box.innerHTML = `
+          <div class="vuoto">
+            <span class="icona">${svg('cerca')}</span>
+            <h2>Ricerca non riuscita</h2>
+            <p>${esc(msg)}</p>
+            <button type="button" class="btn btn-accento" data-riprova>Riprova</button>
+          </div>`;
+      }
+    }
+  }
+
+  async function disegnaRisultati(box, d) {
+    let preferiti = new Set();
+    try { preferiti = new Set((await DB.tutti('preferiti')).map((x) => x.id)); } catch { /* niente */ }
+    const max = GLS.profilo === 'semplice' ? 3 : 6;
+    const prodotto = d.prodotto || {};
+    const nome = prodotto.nome || [prodotto.marca, prodotto.modello].filter(Boolean).join(' ');
+    const contesto = esc(JSON.stringify({ nome }));
+
+    const stella = (tipo, el) => {
+      const pref = preferiti.has(el.url);
+      const dati = esc(JSON.stringify({ tipo, titolo: el.titolo, url: el.url, immagine: el.immagine || null, info: el.info || '' }));
+      return `<button type="button" class="stella${pref ? ' attiva' : ''}" data-preferito="${dati}" data-contesto="${contesto}" aria-pressed="${pref}" aria-label="${pref ? 'Togli dai preferiti' : 'Salva nei preferiti'}">${svg(pref ? 'stellaPiena' : 'stella')}</button>`;
+    };
+
+    const manuali = (d.manuali || []).slice(0, max).map((m) => {
+      const info = [GENERI[m.genere] || '', LINGUE[m.lingua] || '', m.pdf ? 'PDF' : '', m.fonte].filter(Boolean).join(' · ');
+      return `
+        <li class="risultato">
+          <a href="${esc(m.url)}" target="_blank" rel="noopener">
+            <span class="icona piccola">${svg('documento')}</span>
+            <span class="testo"><span class="tit">${esc(m.titolo)}</span><span class="sotto">${esc(info)}</span></span>
+          </a>
+          ${stella('manuale', { ...m, info })}
+        </li>`;
+    }).join('');
+
+    const video = (d.video || []).slice(0, max).map((v) => {
+      const info = [v.canale, v.durata].filter(Boolean).join(' · ');
+      return `
+        <li class="risultato video">
+          <a href="${esc(v.url)}" target="_blank" rel="noopener">
+            <span class="anteprima">${v.immagine ? `<img src="${esc(v.immagine)}" alt="Anteprima del video: ${esc(v.titolo)}" loading="lazy" width="320" height="180">` : svg('play')}${v.durata ? `<span class="durata">${esc(v.durata)}</span>` : ''}</span>
+            <span class="testo"><span class="tit">${esc(v.titolo)}</span><span class="sotto">${esc(v.canale || '')}</span></span>
+          </a>
+          ${stella('video', { ...v, info })}
+        </li>`;
+    }).join('');
+
+    const guide = (d.guide || []).slice(0, max).map((g) => {
+      const info = [g.difficolta, g.minuti ? `${g.minuti} min` : '', 'iFixit'].filter(Boolean).join(' · ');
+      return `
+        <li class="risultato">
+          <a href="${esc(g.url)}" target="_blank" rel="noopener">
+            ${g.immagine ? `<img class="miniatura" src="${esc(g.immagine)}" alt="Foto della guida: ${esc(g.titolo)}" loading="lazy" width="200" height="150">` : `<span class="icona piccola">${svg('chiave')}</span>`}
+            <span class="testo"><span class="tit">${esc(g.titolo)}</span><span class="sotto">${esc(info)}</span></span>
+          </a>
+          ${stella('guida', { ...g, info })}
+        </li>`;
+    }).join('');
+
+    const errori = d.errori || {};
+    const sezione = (titolo, contenuto, vuoto, errore) => `
+      <h2 class="titoletto">${titolo}</h2>
+      ${contenuto ? `<ul class="risultati">${contenuto}</ul>` : `<p class="nota" style="margin-top:0">${esc(errore ? 'Non disponibile ora: ' + errore : vuoto)}</p>`}`;
+    const altrove = d.altrove || {};
+
+    box.innerHTML = `
+      ${nome ? `<div class="prodotto"><span class="icona">${svg('scatola')}</span><div><h2>${esc(nome)}</h2>${prodotto.tipo ? `<p>${esc(prodotto.tipo)}</p>` : ''}</div></div>` : ''}
+      ${sezione('Manuali', manuali, 'Nessun manuale verificato trovato. Prova con "Cerca su Google" qui sotto.', errori.manuali)}
+      ${sezione('Video', video, 'Nessun video trovato.', errori.video)}
+      ${sezione('Guide di riparazione', guide, 'Nessuna guida iFixit per questo modello.', errori.guide)}
+      ${guide ? '<p class="nota">Le guide iFixit sono quasi sempre in inglese.</p>' : ''}
+      <h2 class="titoletto">Cerca anche su</h2>
+      <div class="riga-link">
+        ${altrove.google ? `<a class="btn" href="${esc(altrove.google)}" target="_blank" rel="noopener">${svg('esterno')} Google</a>` : ''}
+        ${altrove.youtube ? `<a class="btn" href="${esc(altrove.youtube)}" target="_blank" rel="noopener">${svg('esterno')} YouTube</a>` : ''}
+        ${altrove.ifixit ? `<a class="btn" href="${esc(altrove.ifixit)}" target="_blank" rel="noopener">${svg('esterno')} iFixit</a>` : ''}
+      </div>
+      <p class="nota">I manuali si aprono dal sito originale: puoi salvarli per uso personale, senza ripubblicarli.</p>`;
+  }
+
+  async function mostraRecenti() {
+    const box = document.getElementById('recenti');
+    if (!box) return;
+    let elenco = [];
+    try { elenco = await DB.tutti('ricerche'); } catch { return; }
+    elenco.sort((a, b) => b.data.localeCompare(a.data));
+    if (!elenco.length) return;
+    box.innerHTML = `
+      <h2 class="titoletto">Ricerche recenti</h2>
+      <div class="elenco-card">
+        ${elenco.slice(0, 5).map((r) => {
+          const d = r.domanda;
+          const nome = (r.risultato && r.risultato.prodotto && r.risultato.prodotto.nome) || d.testo || [d.marca, d.modello].join(' ');
+          const q = new URLSearchParams(Object.entries(d).filter(([, v]) => v));
+          return `<a class="card compatta" href="#/risultati?${q}"><span class="icona piccola">${svg('orologio')}</span><span class="testo"><span class="tit">${esc(nome)}</span></span>${svg('freccia').replace('<svg', '<svg class="freccia"')}</a>`;
+        }).join('')}
+      </div>`;
+    // Tiene solo le 20 ricerche più recenti
+    for (const vecchia of elenco.slice(20)) DB.elimina('ricerche', vecchia.id).catch(() => {});
+  }
+
+  // ---------- Preferiti ----------
+  const TIPI_PREFERITI = { manuale: 'Manuali', video: 'Video', guida: 'Guide di riparazione' };
+
+  async function mostraPreferiti() {
+    const box = document.getElementById('elenco-preferiti');
+    if (!box) return;
+    let elenco = [];
+    try { elenco = await DB.tutti('preferiti'); } catch { /* niente */ }
+    if (!elenco.length) {
+      box.innerHTML = `
+        <div class="vuoto">
+          <span class="icona">${svg('stella')}</span>
+          <h2>Nessun preferito</h2>
+          <p>Tocca la stella accanto a un manuale, un video o una guida per ritrovarlo qui.</p>
+        </div>`;
+      return;
+    }
+    elenco.sort((a, b) => b.data.localeCompare(a.data));
+    box.innerHTML = Object.entries(TIPI_PREFERITI).map(([tipo, titolo]) => {
+      const gruppo = elenco.filter((x) => x.tipo === tipo);
+      if (!gruppo.length) return '';
+      return `
+        <h2 class="titoletto">${titolo}</h2>
+        <ul class="risultati">
+          ${gruppo.map((x) => `
+            <li class="risultato">
+              <a href="${esc(x.url)}" target="_blank" rel="noopener">
+                ${x.immagine ? `<img class="miniatura" src="${esc(x.immagine)}" alt="Anteprima: ${esc(x.titolo)}" loading="lazy" width="200" height="150">` : `<span class="icona piccola">${svg(tipo === 'video' ? 'play' : tipo === 'guida' ? 'chiave' : 'documento')}</span>`}
+                <span class="testo"><span class="tit">${esc(x.titolo)}</span><span class="sotto">${esc([x.prodotto, x.info].filter(Boolean).join(' · '))}</span></span>
+              </a>
+              <button type="button" class="stella attiva" data-togli="${esc(x.id)}" aria-label="Togli dai preferiti">${svg('stellaPiena')}</button>
+            </li>`).join('')}
+        </ul>`;
+    }).join('');
+  }
+
+  vista.addEventListener('click', async (e) => {
+    const riprova = e.target.closest('[data-riprova]');
+    if (riprova) { mostra(); return; }
+
+    const togli = e.target.closest('[data-togli]');
+    if (togli) {
+      await DB.elimina('preferiti', togli.dataset.togli).catch(() => {});
+      mostraAvviso('Tolto dai preferiti.');
+      mostraPreferiti();
+      return;
+    }
+
+    const b = e.target.closest('[data-preferito]');
+    if (!b) return;
+    const el = JSON.parse(b.dataset.preferito);
+    const ctx = JSON.parse(b.dataset.contesto || '{}');
+    const attivo = b.classList.contains('attiva');
+    try {
+      if (attivo) await DB.elimina('preferiti', el.url);
+      else await DB.salva('preferiti', { id: el.url, ...el, prodotto: ctx.nome || '', data: new Date().toISOString() });
+    } catch { mostraAvviso('Non riesco a salvare sul telefono.'); return; }
+    b.classList.toggle('attiva', !attivo);
+    b.setAttribute('aria-pressed', String(!attivo));
+    b.setAttribute('aria-label', attivo ? 'Salva nei preferiti' : 'Togli dai preferiti');
+    b.innerHTML = svg(attivo ? 'stella' : 'stellaPiena');
+    mostraAvviso(attivo ? 'Tolto dai preferiti.' : 'Salvato nei preferiti.');
   });
 
   // ---------- Dati delle pagine ----------
