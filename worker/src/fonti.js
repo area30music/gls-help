@@ -110,6 +110,21 @@ Rispondi SOLO con un oggetto JSON, senza altro testo, con questa forma:
 }
 
 // ---------- iFixit ----------
+// Nomi degli oggetti in inglese, per cercare su iFixit anche senza Gemini
+const TIPI_INGLESE = {
+  lavatrice: 'washing machine', lavastoviglie: 'dishwasher', asciugatrice: 'dryer', frigorifero: 'refrigerator',
+  frigo: 'refrigerator', congelatore: 'freezer', forno: 'oven', microonde: 'microwave', piano: 'cooktop',
+  climatizzatore: 'air conditioner', condizionatore: 'air conditioner', caldaia: 'boiler', aspirapolvere: 'vacuum',
+  robot: 'robot vacuum', 'macchina del caffè': 'coffee maker', caffettiera: 'coffee maker', telefono: 'phone',
+  smartphone: 'phone', cellulare: 'phone', tablet: 'tablet', computer: 'laptop', portatile: 'laptop',
+  televisore: 'tv', tv: 'tv', stampante: 'printer', console: 'game console', bicicletta: 'bike', auto: 'car'
+};
+export function tipoInglese(tipo) {
+  const t = String(tipo || '').toLowerCase().trim();
+  if (!t) return '';
+  return TIPI_INGLESE[t] || Object.entries(TIPI_INGLESE).find(([it]) => t.includes(it))?.[1] || '';
+}
+
 export async function cercaIfixit(query) {
   if (!query) return [];
   const url = `https://www.ifixit.com/api/2.0/search/${encodeURIComponent(query)}?filter=guide&limit=6`;

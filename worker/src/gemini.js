@@ -21,7 +21,13 @@ export async function chiediGemini(env, prompt, { ricercaGoogle = false, tempera
       body: JSON.stringify(body)
     });
     if (r.status === 404) { ultimoErrore = new Error(`Modello ${modello} non disponibile`); continue; }
-    if (r.status === 429) throw new Error('Quota gratuita di Gemini esaurita per ora: riprova tra qualche minuto');
+    if (r.status === 429) {
+      // Quota del modello finita (o assente): si prova il modello successivo
+      let motivo = '';
+      try { motivo = ((await r.json()).error || {}).message || ''; } catch { /* niente */ }
+      ultimoErrore = new Error(`Quota gratuita di Gemini esaurita per ora (${modello}): ${motivo.split('\n')[0].slice(0, 220)}`);
+      continue;
+    }
     if (!r.ok) throw new Error(`Gemini ha risposto ${r.status}: ${(await r.text()).slice(0, 200)}`);
     const dati = await r.json();
     const candidato = (dati.candidates || [])[0] || {};

@@ -1,5 +1,5 @@
 // Server di GLS Help (Cloudflare Worker).
-import { cercaManuali, cercaIfixit, cercaYoutube } from './fonti.js';
+import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese } from './fonti.js';
 
 const VERSIONE = '__VERSIONE__';
 
@@ -102,6 +102,9 @@ async function cerca(request, env, ctx) {
   try {
     guide = await cercaIfixit(perIfixit);
     if (!guide.length && marcaModello && perIfixit !== marcaModello) guide = await cercaIfixit(marcaModello);
+    // Ancora niente: marca + tipo di oggetto in inglese (es. "Samsung washing machine")
+    const generico = [domanda.marca, tipoInglese(domanda.tipo || (datiManuali && datiManuali.prodotto && datiManuali.prodotto.tipo))].filter(Boolean).join(' ');
+    if (!guide.length && generico && generico.includes(' ')) guide = await cercaIfixit(generico);
   } catch (e) { errori.guide = e.message; }
 
   const prodotto = (datiManuali && datiManuali.prodotto) || {};
