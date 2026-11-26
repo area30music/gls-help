@@ -111,10 +111,10 @@ async function paginaValida(url, modello, { senzaRedirect = false, sitoUfficiale
     // Alcuni siti ufficiali bloccano i controlli automatici (403): la pagina esiste, si tiene
     if ((r.status === 403 || r.status === 401) && (sitoUfficiale || giaVerificato)) { try { await r.body?.cancel(); } catch { /* */ } return true; }
     if (r.status !== 200) { try { await r.body?.cancel(); } catch { /* */ } return false; }
-    if (giaVerificato || compatto(url).includes(compatto(modello).slice(0, 7))) { try { await r.body?.cancel(); } catch { /* */ } return true; }
+    if (giaVerificato || contieneModello(compatto(url), compatto(modello))) { try { await r.body?.cancel(); } catch { /* */ } return true; }
     const tipo = r.headers.get('Content-Type') || '';
     if (/pdf/i.test(tipo)) { try { await r.body?.cancel(); } catch { /* */ } return true; }
-    const pezzo = compatto(modello).slice(0, 7);
+    const pezzo = compatto(modello);
     if (!pezzo) { try { await r.body?.cancel(); } catch { /* */ } return true; }
     const html = (await r.text()).slice(0, 400000);
     return contieneModello(compatto(html), pezzo);
@@ -183,7 +183,7 @@ Massimo 6, solo indirizzi visti nei risultati.`, { ricercaGoogle: true });
   const daWeb = [];
   if (env.TAVILY_API_KEY && (modelloOk || testo)) {
     const base = [marcaOk, modelloOk].filter(Boolean).join(' ') || testo;
-    const pezzo = compatto(modelloOk).replace(/^(surecolor|sc)/, '').slice(0, 7);
+    const pezzo = compatto(modelloOk).replace(/^(surecolor|sc)/, '');
     const risultati = (await Promise.allSettled([
       cercaTavily(env, `${base} manuale istruzioni pdf`),
       cercaTavily(env, `${base} user manual pdf`)
