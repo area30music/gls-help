@@ -1,5 +1,5 @@
 // Server di GLS Help (Cloudflare Worker).
-import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese } from './fonti.js';
+import { cercaManuali, cercaIfixit, cercaYoutube, tipoInglese, cercaWeb, cercaDuckDuckGo, cercaBing } from './fonti.js';
 
 const VERSIONE = '__VERSIONE__';
 
@@ -179,6 +179,16 @@ export default {
       } catch (e) {
         return rispondi({ errore: e.message }, 500, null);
       }
+    }
+
+    // Diagnosi tecnica: cosa restituiscono i motori di ricerca dal server
+    if (percorso === 'diagnosi/web') {
+      const q = url.searchParams.get('q') || 'Samsung WW90T534DAW manuale pdf';
+      const esito = {};
+      for (const [nome, fn] of [['duckduckgo', cercaDuckDuckGo], ['bing', cercaBing]]) {
+        try { esito[nome] = (await fn(q)).slice(0, 8).map((x) => x.url); } catch (e) { esito[nome] = 'errore: ' + e.message; }
+      }
+      return rispondi(esito, 200, null);
     }
 
     // Il calendario (.ics) verrà aperto dalle app calendario, senza Origin: fase 6

@@ -31,7 +31,7 @@ function testoSemplice(html) {
 }
 
 // ---------- Ricerca sul web (gratuita): DuckDuckGo, con Bing come riserva ----------
-async function cercaDuckDuckGo(q) {
+export async function cercaDuckDuckGo(q) {
   const r = await conTempo(fetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q), {
     headers: { 'User-Agent': UA, 'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8' }
   }));
@@ -59,7 +59,7 @@ async function cercaDuckDuckGo(q) {
   return risultati;
 }
 
-async function cercaBing(q) {
+export async function cercaBing(q) {
   const r = await conTempo(fetch('https://www.bing.com/search?format=rss&setlang=it&q=' + encodeURIComponent(q), {
     headers: { 'User-Agent': UA }
   }));
